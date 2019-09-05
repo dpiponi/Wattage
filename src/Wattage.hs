@@ -2,26 +2,64 @@
 
 module Wattage where
 
+import Poly
+
 import Data.Ratio
 import Data.List hiding (union)
 import Debug.Trace
 
-type Q = Rational
-
-type Series a = [a]
-
-sample a = map (flip count a) [0..10]
+(.*.) :: Num a => [a] -> [a] -> [a]
+(.*.) = zipWith (*)
 
 (*!) _ 0 = 0
 (*!) a b = a*b
 (!*) 0 _ = 0
 (!*) a b = a*b
-(^+) a b = zipWith (+) a b
-(^-) a b = zipWith (-) a b
+(^+) a b = zipWithIdentity (+) 0 a b
+(^-) a b = zipWithIdentity (-) 0 a b
 
-~(a:as) `convolve` (b:bs) = (a *! b):
-    ((map (a !*) bs) ^+ (as `convolve` (b:bs)))
-compose (f:fs) (0:gs) = f:(gs `convolve` (compose fs (0:gs)))
+type Q = Rational
+
+type Series a = [a]
+
+fibs :: (Eq a, Num a) => [a]
+fibs = 0 : 1 : fibs + tail fibs
+
+fibAnn = [-1, -1, 1]
+
+lucas :: (Eq a, Num a) => [a]
+lucas = 2 : 1 : lucas + tail lucas
+
+lucasAnn = [-1, -1, 1]
+
+tribs :: (Eq a, Num a) => [a]
+tribs = 0 : 0 : 1 : tribs + tail tribs + tail (tail tribs)
+
+tribAnn = [-1, -1, -1, 1]
+
+perrin :: (Eq a, Num a) => [a]
+perrin = 3 : 0 : 2 : perrin + tail perrin
+
+perrinAnn = [-1, -1, 0, 1]
+
+sample a = map (flip count a) [0..10]
+
+-- convolve a b
+-- a must not be finite, b may be
+-- result is not finite
+~(a : as) `convolve` bbs@(b : bs) = (a *! b) :
+    ((map (a !*) bs) ^+ (as `convolve` bbs))
+
+~(a : as) `convolve` [] = repeat 0
+
+aas@(a : as) `lconvolve` ~(b : bs) = (a !* b) :
+    ((map (*! b) as) ^+ (aas `lconvolve` bs))
+
+[] `lconvolve` ~(a : as) = repeat 0
+
+as `ann` bs = drop (length as - 1) (reverse as `lconvolve` bs)
+
+compose (f : fs) (0 : gs) = f : (gs `convolve` (compose fs (0 : gs)))
 
 inverse (0:f:fs) = x where x     = map (recip f *) (0:1:g)
                            _:_:g    = map negate (compose (0:0:fs) x)
@@ -33,6 +71,10 @@ invert x = r where r = map (/x0)  ((1:repeat 0) ^- (r `convolve` (0:xs)))
 
 z :: Fractional a => [a]
 z = 0:1:repeat 0
+
+eval :: Num b => [b] -> b -> b
+eval [] x = 0
+eval (a:as) x = a+x*eval as x
 
 d (_:x) = zipWith (*) (map fromInteger [1..]) x
 
@@ -71,6 +113,8 @@ instance (Eq r, Fractional r) => Floating [r] where
     atanh x      = integrate (d x/(1-x*x))
     acosh x      = error "Unable to form power series for acosh"
     pi       = error "There is no formal power series for pi"
+
+cbrt x = exp (map (/ 3) $ log x)
 
 t :: (Eq a, Num a) => ([a])
 t = 0:1:repeat 0
@@ -118,12 +162,14 @@ flog f@(0 : 1 : _) = flog' f 1 0 z
                     let pz = p f z
                     in flog' f (n+1) (t ^- map (((-1)^n / fromIntegral n) *) pz) pz
 
-cbrt x = exp (map (/ 3) $ log x)
-
 fexp f@(0 : 0 : _) = fexp' f 0 t' 1
 fexp' f total term n = take (n - 1) total ...
             fexp' f (total + term) (map (/fromIntegral n) (f*d term)) (n+1)
 
+fsqrt x = fexp ((flog x) / 2)
+fpow x n = fexp ((flog x) * n)
+
+-- hypergeometric
 f01 :: (Num a, Fractional a, Eq a) => a -> [a] -> [a]
 f01 a x = let f an a n = an : f (an/(a*n)) (a+1) (n+1)
           in  f 1 a 1  `compose` x

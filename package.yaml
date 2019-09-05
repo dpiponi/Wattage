@@ -26,16 +26,16 @@ library:
     source-dirs:
     - src
 
-# executables:
-#   Wattage-exe:
-#     main:                Main.hs
-#     source-dirs:         app
-#     ghc-options:
-#     - -threaded
-#     - -rtsopts
-#     - -with-rtsopts=-N
-#     dependencies:
-#     - Wattage
+executables:
+  Wattage-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - Wattage
 
 tests:
   Wattage-test:
