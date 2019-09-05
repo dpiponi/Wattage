@@ -42,7 +42,7 @@ perrin = 3 : 0 : 2 : perrin + tail perrin
 
 perrinAnn = [-1, -1, 0, 1]
 
-sample a = map (flip count a) [0..10]
+sample a = map (flip count a) [0..20]
 
 -- convolve a b
 -- a must not be finite, b may be
@@ -139,7 +139,7 @@ union a b   = a*b
 
 nonEmpty a = a // (/= 0)
 
-count n a = numerator ((a!!(fromInteger n)) * (factorial (fromInteger n)))
+count n a = ((a!!(fromInteger n)) * (factorial (fromInteger n)))
 
 tree x = p where p = [0] ... union (set p) x
 
