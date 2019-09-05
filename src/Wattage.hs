@@ -156,18 +156,30 @@ delta (g : gs) h = let g' = delta gs h
 --     in g
 
 p f t = (t `compose` f) ^- t
-flog :: (Eq a, Fractional a) => [a] -> [a]
-flog f@(0 : 1 : _) = flog' f 1 0 z
-         where flog' f n t z = take (n+1) t ... 
+
+-- |The 'itlog' function computes the iterative logarithm of
+--  its argument.
+--  See https://www.math.ucla.edu/~matthias/pdf/zvonkine.pdf
+--  `itlog` has these properties:
+--  `itlog . itexp = id`
+--  `itexp . itlog = id`
+--  `itexp (n * itlog f) = f . f . ... n times ... f`
+--  `itexp (-itlog f) = invert f`
+itlog :: (Eq a, Fractional a) => [a] -> [a]
+itlog f@(0 : 1 : _) = itlog' f 1 0 z
+         where itlog' f n t z = take (n+1) t ... 
                     let pz = p f z
-                    in flog' f (n+1) (t ^- map (((-1)^n / fromIntegral n) *) pz) pz
+                    in itlog' f (n+1) (t ^- map (((-1)^n / fromIntegral n) *) pz) pz
 
-fexp f@(0 : 0 : _) = fexp' f 0 t' 1
-fexp' f total term n = take (n - 1) total ...
-            fexp' f (total + term) (map (/fromIntegral n) (f*d term)) (n+1)
+-- |The 'itexp' function computes the inverse of the iterative logarithm of
+--  its argument.
+--  See https://www.math.ucla.edu/~matthias/pdf/zvonkine.pdf
+itexp f@(0 : 0 : _) = itexp' f 0 t' 1
+itexp' f total term n = take (n - 1) total ...
+            itexp' f (total + term) (map (/fromIntegral n) (f*d term)) (n+1)
 
-fsqrt x = fexp ((flog x) / 2)
-fpow x n = fexp ((flog x) * n)
+itsqrt x = itexp ((itlog x) / 2)
+itpow x n = itexp ((itlog x) * n)
 
 -- hypergeometric
 f01 :: (Num a, Fractional a, Eq a) => a -> [a] -> [a]
@@ -190,13 +202,13 @@ dilog x = integrate $ -log (1-x)*d x/x
 
 -- Theta constants
 -- θ₂(z) = z^(1/4)*modifiedTheta2 z
-modifiedTheta2 q = let t = 2 : (intercalate [2] $ map (flip replicate 0) [1,3..])
+modifiedTheta2 q = let t = 2 : (intercalate [2] $ map (flip replicate 0) [1, 3..])
                    in t `compose` q
 
-theta3 q = let t = 1 : (intercalate [2] $ map (flip replicate 0) [0,2..])
+theta3 q = let t = 1 : (intercalate [2] $ map (flip replicate 0) [0, 2..])
            in t `compose` q
 
-theta4 q = let t = 1 : (intercalate [2] $ map (flip replicate 0) [0,2..])
+theta4 q = let t = 1 : (intercalate [2] $ map (flip replicate 0) [0, 2..])
            in (zipWith (*) t (cycle [1, -1])) `compose` q
 
 -- sumOfSquares = (theta3 z)^2
@@ -245,40 +257,40 @@ instance Fractional FreeNum where
 -- main = do
 --     -- OK, I'm not the first to produce this sequence of coefficients
 --     -- http://math.stackexchange.com/a/209653
---     let a = flog (t'+t'^2)
+--     let a = itlog (t'+t'^2)
 --     mapM_ print $ take 20 a
 -- 
---     let b = flog (sin t')
---     let c = fexp (b/2)
+--     let b = itlog (sin t')
+--     let c = itexp (b/2)
 --     -- http://oeis.org/A048602
 --     -- http://oeis.org/A048603
 --     mapM_ print $ take 20 c
---     let d = fexp (-b)
+--     let d = itexp (-b)
 --     -- http://oeis.org/A055786
 --     -- http://oeis.org/A002595
 --     mapM_ print $ take 20 d
 --     -- http://oeis.org/A052132
 --     -- http://oeis.org/A052135
---     let e = fexp (b/3)
+--     let e = itexp (b/3)
 --     mapM_ print $ take 20 e
 --     
 --     -- See bottom of page 14
 --     -- http://www.springer.com/cda/content/document/cda_downloaddocument/9783642004490-c1.pdf
 --     -- or top of page 8
 --     -- https://www.itp.uni-hannover.de/~flohr/papers/w-cft-survivalkit.pdf
---     let f = flog (t'/(1-t'))
+--     let f = itlog (t'/(1-t'))
 --     mapM_ print $ take 20 f
 -- 
---     let g = flog (t'/sqrt(1-2*t'^2))
+--     let g = itlog (t'/sqrt(1-2*t'^2))
 --     mapM_ print $ take 20 g
---     let h = flog (t'/cbrt(1-3*t'^3))
+--     let h = itlog (t'/cbrt(1-3*t'^3))
 --     mapM_ print $ take 20 h
 -- 
 --     -- http://oeis.org/A004148
---     let k = fexp (t'^2/(1-t'^2))
+--     let k = itexp (t'^2/(1-t'^2))
 --     mapM_ print $ take 20 k
 -- 
---     mapM_ print $ take 20 $ fexp ((sin t')^2)
+--     mapM_ print $ take 20 $ itexp ((sin t')^2)
 --     mapM_ print $ take 20 $ atan (tan t'/(1-tan t'))
 
 -- factorial :: (Eq n, Num n) => n -> n
@@ -288,16 +300,3 @@ factorial n = n*factorial (n-1)
 besselJ :: (Eq x, Fractional x) => Integer -> [x] -> [x]
 besselJ n x = let scale = 1/fromRational (fromIntegral (factorial n))
               in map (scale *) $ f01 (fromInteger n + 1) (-x^2 / 4) * (x / 2)^n
-
-{-
- let a = 1/2
- let b = 1/3
- let c = 1/4
- let s = 1/5
- let u = hypergeometric [2*c-2*s-1,2*s,c-1/2] [2*c-1,c] z - (f21 (c-s-1/2) s c z)^2
- - -}
-
--- step f g = g - ((f `compose` g) - z) / (d f `compose` g)
--- 
--- revert 0 f = z
--- revert n f = step f (revert (n-1) f)

@@ -29,7 +29,7 @@ testFiniteConvolution11 = [1] `fconvolve` [1]  @?= [1]
 testFiniteConvolutionPoly1 = [1, 1] `fconvolve` [1, 1]  @?= [1, 2, 1]
 testFiniteConvolutionPoly2 = [1, 2] `fconvolve` [2, 4]  @?= [2, 8, 8]
 
--- Annihilators
+-- Annihilators (this is work in progress and may be deleted)
 testAnnihilators = testGroup "Tests of annihilators"
     [ testCase "Fibonacci" testFibonacciAnnihilator,
       testCase "Tribonacci" testTribonacciAnnihilator
@@ -71,12 +71,14 @@ testIdentity3 =
         rhs = term1 - term2
     in take 10 lhs @?= take 10 rhs
 
+-- http://mathworld.wolfram.com/KummersRelation.html
 testKummerRelation =
   let a = 1/3
       b = 1/5
       u = f21 (2*a) (2*b) (a+b+1/2) z - f21 a b (a+b+1/2) (4*z*(1-z)) :: [Q]
   in take 10 u @?= take 10 (repeat 0)
 
+-- https://en.wikipedia.org/wiki/Clausen%27s_formula
 testClausenFormula =
  let a = 1/2
      b = 1/3
