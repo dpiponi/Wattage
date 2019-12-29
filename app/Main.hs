@@ -32,8 +32,9 @@ main = do
   let u1 = upgrade 3 x1
   let u2 = x2
   let v = (u0+u1+u2)*(u0+2*u1+3*u2)
+  print $ makeMonomial 2 [1, 1, 1]
   print $ v
-  print $ hdivide v (u0+u1+2*u2)
+  print $ hdivide 0 v (u0+u1+u2)
 --   print $ leadingTerm (x0 * x1 + x2 * x2)
 --   let u = 2 * zz 0 3 * zz 1 3 * zz 2 3 + zz 2 3 * zz 2 3 * zz 2 3
 --   let v = zz 0 3 * zz 1 3

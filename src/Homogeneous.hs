@@ -159,6 +159,14 @@ isMonomial (H d n c) =
 make_var :: Num a => Int -> Int -> Homogeneous a
 make_var i n = H {degree=1, num_vars=n, coefficients=array (0, n-1) [(j, if i == j then 1 else 0) | j <- [0 .. n-1]] }
 
+makeMonomial :: Num a => a -> [Int] -> Homogeneous a
+makeMonomial a ks = 
+    let d = sum ks
+        n = length ks
+        size = hdim n d
+        i = addr d ks
+    in H d n $ array (0, size - 1) [(j, if j == i then a else 0) | j <- [0 .. size - 1]]
+
 allOfDegree :: Int -> Int -> [[Int]]
 allOfDegree d 1 = [[d]]
 allOfDegree d n = do
@@ -240,19 +248,20 @@ leadingTerm (H d n c) =
                   c ! addr d ks /= 0
                 ]
 
-hdivide :: (Eq a, Num a, Fractional a, Show a) => Homogeneous a -> Homogeneous a -> Homogeneous a
-hdivide Zero _ = Zero
-hdivide _ Zero = error "Dvision by zero"
-hdivide h0@(H d0 n0 c0) h1@(H d1 n1 c1) =
+hdivide :: (Eq a, Num a, Fractional a, Show a) => Homogeneous a -> Homogeneous a -> Homogeneous a -> Homogeneous a
+hdivide acc Zero _ = acc
+hdivide _ _ Zero = error "Dvision by zero"
+hdivide acc h0@(H d0 n0 c0) h1@(H d1 n1 c1) =
     case leadingTerm h0 of
-        Nothing -> h0
+        Nothing -> acc
         Just lt0 -> case leadingTerm h1 of
                         Nothing -> error "Division by zero"
                         Just lt1 ->
                             if allGreaterEqual lt0 lt1
                               then let ratio = c0 ! addr d0 lt0 / c1 ! addr d1 lt1
                                        js = exponentSub lt0 lt1
-                                   in (trace $ show (h0,ratio, js,h1)) $ hdivide (subtractMonomialTimes h0 ratio js h1) h1
+                                       acc' = acc + makeMonomial ratio js
+                                   in hdivide acc' (subtractMonomialTimes h0 ratio js h1) h1
                               else error "Doesn't divide"
                             
 
