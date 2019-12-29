@@ -14,6 +14,7 @@ zipWithIdentity f e as [] = fmap (flip f e) as
 
 _ `fconvolve` [] = []
 
+del _ [] = error "del only applicable to non-empty lists"
 del 0 (_ : xs) = xs
 del n (x : xs) = x : del (n-1) xs
 
@@ -28,6 +29,7 @@ det [[a]] = a
 det (m : ms) = sum $
     [ a * s * (det (map (del i) ms)) |
      (i, s, a) <- zip3 [0..] (cycle [1, -1]) m]
+det _ = error "det only applicable to lists of lists"
 
 instance (Eq r, Num r) => Num (Poly r) where
     Poly x + Poly y = Poly $ zipWithIdentity (+) 0 x y
@@ -59,6 +61,7 @@ polyLift (Poly p) = Poly $ map constantPoly p
 
 sumAnnihilator p q = p * q
 
+transpose [] = []
 transpose [xs] = map return xs
 transpose (x : xs) = zipWith (:) x (transpose xs)
 

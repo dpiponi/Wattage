@@ -60,9 +60,14 @@ aas@(a : as) `lconvolve` ~(b : bs) = (a !* b) :
 as `ann` bs = drop (length as - 1) (reverse as `lconvolve` bs)
 
 compose (f : fs) (0 : gs) = f : (gs `convolve` (compose fs (0 : gs)))
+compose _ _ = error "compose requires two non-empty lists, the second starting with 0"
 
 inverse (0:f:fs) = x where x     = map (recip f *) (0:1:g)
                            _:_:g    = map negate (compose (0:0:fs) x)
+
+inverse _ = error "inverse applicable only to non-empty lists starting with 0"
+
+-- reciprocal
 invert x = r where r = map (/x0)  ((1:repeat 0) ^- (r `convolve` (0:xs)))
                    x0:xs = x 
 
@@ -77,6 +82,7 @@ eval [] x = 0
 eval (a:as) x = a+x*eval as x
 
 d (_:x) = zipWith (*) (map fromInteger [1..]) x
+d _ = error "You can only differentiate non-empty lists"
 
 integrate x = 0 : zipWith (/) x (map fromInteger [1..])
 
@@ -89,7 +95,9 @@ instance (Eq r, Num r) => Num [r] where
     fromInteger x      = fromInteger x:repeat 0
     negate x     = map negate x
     signum (x:_) = signum x:repeat 0
+    signum _ = error "signum only applicable to non-empty lists"
     abs (x:xs)   = error "Can't form abs of a power series"
+    abs _ = error "abs only applicable to non-empty lists"
 
 instance (Eq r, Fractional r) => Fractional [r] where
     x/y = x ^/ y
@@ -100,7 +108,7 @@ sqrt' x = 1:rs where rs = map (/2) (xs ^- (rs `convolve` (0:rs)))
 instance (Eq r, Fractional r) => Floating [r] where
     sqrt (1:x) = sqrt' (1:x)
     sqrt _      = error "Can only find sqrt when leading term is 1"
-    exp x      = e where e = 1+integrate (e * d x)
+    exp x      = e where e = 1+integrate (e * d x) -- XXX throws away leading term
     log x      = integrate (d x/x)
     sin x      = integrate ((cos x)*(d x))
     cos x      = [1] ... negate (integrate ((sin x)*(d x)))
@@ -149,6 +157,7 @@ connectedGraph = 1 + log graph
 
 delta (g : gs) h = let g' = delta gs h
                    in (0 : ((1 : h) * g')) + gs
+delta _ _ = error "First argument to delta must be non-empty"
 
 -- fsqrt (0 : 1 : fs) =
 --     let gs = (fs-(0 : gs*((0 : delta gs gs)+((2 : gs)*(gs*g)))))/2
@@ -170,11 +179,13 @@ itlog f@(0 : 1 : _) = itlog' f 1 0 z
          where itlog' f n t z = take (n+1) t ... 
                     let pz = p f z
                     in itlog' f (n+1) (t ^- map (((-1)^n / fromIntegral n) *) pz) pz
+itlog _ = error "itlog only applicable to series starting z+..."
 
 -- |The 'itexp' function computes the inverse of the iterative logarithm of
 --  its argument.
 --  See https://www.math.ucla.edu/~matthias/pdf/zvonkine.pdf
 itexp f@(0 : 0 : _) = itexp' f 0 t' 1
+itexp _ = error "itexp only applicable to series starting a*z^2+..."
 itexp' f total term n = take (n - 1) total ...
             itexp' f (total + term) (map (/fromIntegral n) (f*d term)) (n+1)
 
