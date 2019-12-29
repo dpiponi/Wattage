@@ -28,9 +28,11 @@ test xs = xs
 main :: IO ()
 main = do
   print "Hello"
-  let u = 2 * zz 0 3 * zz 1 3 * zz 2 3 + zz 2 3 * zz 2 3 * zz 2 3
-  let v = zz 0 3 * zz 1 3
-  print $ subtractMonomialTimes u 2 [0, 0, 1] v
+  print $ hdivide x0 x1
+--   print $ leadingTerm (x0 * x1 + x2 * x2)
+--   let u = 2 * zz 0 3 * zz 1 3 * zz 2 3 + zz 2 3 * zz 2 3 * zz 2 3
+--   let v = zz 0 3 * zz 1 3
+--   print $ subtractMonomialTimes u 2 [0, 0, 1] v
 --   print $ x0/x0
 --   print $ take 8 $ test $ z0*exp (z0*z1)
 --   print $ take 8 $ test $ exp z0 - 1

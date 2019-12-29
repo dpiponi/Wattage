@@ -118,13 +118,14 @@ instance (Show a, Num a, Eq a) => Show (Homogeneous a) where
   showsPrec p Zero = showString "0"
   showsPrec p (H d n c) = showParen (p > 5) $ showString $ "<" ++ L.intercalate "+" [
     show c0 ++ "*" ++ concat ["x"++show i ++ "^" ++ show j | (i, j) <- zip [0..] js, j /= 0] |
-      js <- all_of_degree d n,
+      js <- allOfDegree d n,
       let c0 = c ! addr d js,
       c0 /= 0] ++ ">"
 
 isMonomial :: (Num a, Eq a) => Homogeneous a -> Maybe [Int]
+isMonomial Zero = Nothing
 isMonomial (H d n c) =
-  let indices = all_of_degree d n
+  let indices = allOfDegree d n
       index = filter (\i -> (c ! addr d i) /= 0) indices
   in if length index == 1 then Just (head index) else Nothing
 
@@ -142,14 +143,14 @@ isMonomial (H d n c) =
 --             size = pochhammer n (d0' - d1) `div` fact (d0' - d1')
 --             size0 = pochhammer n d0' `div` fact d0'
 --             size1 = pochhammer n d1' `div` fact d1'
---             in if length [indices | indices <- all_of_degree d1' n,
+--             in if length [indices | indices <- allOfDegree d1' n,
 --                                     let c = c0' ! addr d0' indices,
 --                                     c /= 0,
 --                                     any (<) $ zipWith (-) indices index] > 0
 --                   then error "Can't divide by larger exponents"
 --                   else H (d0 - d1) n $
 --                     array (0, size - 1) [(addr (d0' - d1'), c0' ! addr d0' indices') |
---                                                   indices <- all_of_degree d0' n,
+--                                                   indices <- allOfDegree d0' n,
 --                                                   indices' <- zipWith (-) indices index]
 
 --   recip (H d n c) | d == 0 = H d n $ fmap recip c
@@ -158,11 +159,11 @@ isMonomial (H d n c) =
 make_var :: Num a => Int -> Int -> Homogeneous a
 make_var i n = H {degree=1, num_vars=n, coefficients=array (0, n-1) [(j, if i == j then 1 else 0) | j <- [0 .. n-1]] }
 
-all_of_degree :: Int -> Int -> [[Int]]
-all_of_degree d 1 = [[d]]
-all_of_degree d n = do
+allOfDegree :: Int -> Int -> [[Int]]
+allOfDegree d 1 = [[d]]
+allOfDegree d n = do
   i <- [0 .. d]
-  js <- all_of_degree (d - i) (n-1)
+  js <- allOfDegree (d - i) (n-1)
   return (i : js)
 
 all_splits :: Int -> Int -> [Int] -> [([Int], [Int])]
@@ -178,9 +179,9 @@ all_splits d0 d1 (i : is) = do
   (ks, ls) <- all_splits (d0 - j0) (d1 - j1) is
   return (j0 : ks, j1 : ls)
 
-x0 = make_var 0 1
-x1 = make_var 1 2
-x2 = make_var 2 3
+x0 = make_var 0 1 :: Homogeneous Rational
+x1 = make_var 1 2 :: Homogeneous Rational
+x2 = make_var 2 3 :: Homogeneous Rational
 
 upgrade :: Num a => Int -> Homogeneous a -> Homogeneous a
 upgrade n Zero = Zero
@@ -200,7 +201,7 @@ htimes (H d0 n0 c0) (H d1 n1 c1) =
   in H d n0 $ array (0, hdim n0 d - 1) $
        [(addr d is, sum [(c0 ! addr d0 js)*(c1 ! addr d1 ks) |
                                  (js, ks) <- all_splits d0 d1 is]) |
-        is <- all_of_degree d n0]
+        is <- allOfDegree d n0]
 
 exponentAdd :: [Int] -> [Int] -> [Int]
 exponentAdd a b = zipWith (+) a b
@@ -222,10 +223,40 @@ monomialTimesHomogeneous js (H d0 n c0) =
         size1 = hdim n d1
     in H d1 n $ array (0, size1 - 1) $
         [(addr d1 ks, a) |
-         ks <- all_of_degree d1 n,
+         ks <- allOfDegree d1 n,
          let a = if allGreaterEqual ks js
                    then c0 ! addr d0 (exponentSub ks js)
                    else 0]
+
+maybeHead :: [a] -> Maybe a
+maybeHead [] = Nothing
+maybeHead (a : as) = Just a
+
+leadingTerm :: (Eq a, Num a) => Homogeneous a -> Maybe [Int]
+leadingTerm Zero = Nothing
+leadingTerm (H d n c) =
+    maybeHead $ [ ks |
+                  ks <- allOfDegree d n,
+                  c ! addr d ks /= 0
+                ]
+
+hdivide :: (Eq a, Num a, Fractional a, Show a) => Homogeneous a -> Homogeneous a -> Homogeneous a
+hdivide Zero _ = Zero
+hdivide _ Zero = error "Dvision by zero"
+hdivide h0@(H d0 n0 c0) h1@(H d1 n1 c1) =
+    case leadingTerm h0 of
+        Nothing -> h0
+        Just lt0 -> case leadingTerm h1 of
+                        Nothing -> error "Division by zero"
+                        Just lt1 ->
+                            if allGreaterEqual lt0 lt1
+                              then let ratio = c0 ! addr d0 lt0 / c1 ! addr d1 lt1
+                                       js = exponentSub lt0 lt1
+                                   in hdivide (subtractMonomialTimes h0 ratio js h1) h1
+                              else error "Doesn't divide"
+                            
+
+
 
 hscale :: Num a => a -> Homogeneous a -> Homogeneous a
 hscale _ Zero = Zero
@@ -278,7 +309,7 @@ instance (Eq a, Show a, Num a) => Num (Homogeneous a) where
 -- htimes :: Num a => Homogeneous a -> Homogeneous a -> Homogeneous a
 -- htimes (H d0 n0 c0) (H d1 n1 c1) =
 --   H (d0 + d1) n0 $ array (0, (pochhammer n0 (d0 + d1) `div` fact (d0 + d1)) - 1) $
---     [(addr (d0 + d1) is, 1) | is <- all_of_degree (d0 + d1) n0]
+--     [(addr (d0 + d1) is, 1) | is <- allOfDegree (d0 + d1) n0]
 
 {-
 main = do
