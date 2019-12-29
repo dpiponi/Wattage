@@ -252,7 +252,7 @@ hdivide h0@(H d0 n0 c0) h1@(H d1 n1 c1) =
                             if allGreaterEqual lt0 lt1
                               then let ratio = c0 ! addr d0 lt0 / c1 ! addr d1 lt1
                                        js = exponentSub lt0 lt1
-                                   in hdivide (subtractMonomialTimes h0 ratio js h1) h1
+                                   in (trace $ show (h0,ratio, js,h1)) $ hdivide (subtractMonomialTimes h0 ratio js h1) h1
                               else error "Doesn't divide"
                             
 
