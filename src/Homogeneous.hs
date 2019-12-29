@@ -116,11 +116,11 @@ data Homogeneous a = Zero | H { degree :: Int, num_vars :: Int, coefficients :: 
 
 instance (Show a, Num a, Eq a) => Show (Homogeneous a) where
   showsPrec p Zero = showString "0"
-  showsPrec p (H d n c) = showParen (p > 5) $ showString $ L.intercalate "+" [
+  showsPrec p (H d n c) = showParen (p > 5) $ showString $ "<" ++ L.intercalate "+" [
     show c0 ++ "*" ++ concat ["x"++show i ++ "^" ++ show j | (i, j) <- zip [0..] js, j /= 0] |
       js <- all_of_degree d n,
       let c0 = c ! addr d js,
-      c0 /= 0]
+      c0 /= 0] ++ ">"
 
 isMonomial :: (Num a, Eq a) => Homogeneous a -> Maybe [Int]
 isMonomial (H d n c) =
@@ -201,6 +201,41 @@ htimes (H d0 n0 c0) (H d1 n1 c1) =
        [(addr d is, sum [(c0 ! addr d0 js)*(c1 ! addr d1 ks) |
                                  (js, ks) <- all_splits d0 d1 is]) |
         is <- all_of_degree d n0]
+
+exponentAdd :: [Int] -> [Int] -> [Int]
+exponentAdd a b = zipWith (+) a b
+
+exponentSub :: [Int] -> [Int] -> [Int]
+exponentSub a b = zipWith (-) a b
+
+allGreaterEqual :: [Int] -> [Int] -> Bool
+allGreaterEqual js ks = all id $ zipWith (>=) js ks
+
+-- Optimise.
+-- Need to look at relationship between addr when d varies.
+-- Use to only init needed elements by walking through addresses,
+-- not exponents.
+monomialTimesHomogeneous :: Num a => [Int] -> Homogeneous a -> Homogeneous a
+monomialTimesHomogeneous _ Zero = Zero
+monomialTimesHomogeneous js (H d0 n c0) =
+    let d1 = sum js + d0
+        size1 = hdim n d1
+    in H d1 n $ array (0, size1 - 1) $
+        [(addr d1 ks, a) |
+         ks <- all_of_degree d1 n,
+         let a = if allGreaterEqual ks js
+                   then c0 ! addr d0 (exponentSub ks js)
+                   else 0]
+
+hscale :: Num a => a -> Homogeneous a -> Homogeneous a
+hscale _ Zero = Zero
+hscale a (H d0 n0 c0) = H d0 n0 $ fmap (a *) c0
+
+-- Sort of a SAXPY
+subtractMonomialTimes :: (Show a, Eq a, Num a) => Homogeneous a -> a -> [Int] -> Homogeneous a -> Homogeneous a
+subtractMonomialTimes Zero _ _ Zero = Zero
+subtractMonomialTimes h _ _ Zero = h
+subtractMonomialTimes h0 a js h1 = h0 - hscale a (monomialTimesHomogeneous js h1)
 
 isZero :: (Eq a, Num a, Show a) => Homogeneous a -> Bool
 isZero Zero = True

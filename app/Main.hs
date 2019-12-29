@@ -17,6 +17,8 @@ z0 :: [Homogeneous Rational]
 z0 = 0 : make_var 0 1 : repeat Zero
 z1 = 0 : make_var 1 2 : repeat Zero
 
+zz = make_var
+
 test :: [Homogeneous Rational] -> [Homogeneous Rational]
 test (0 : xs) = xs
 test xs = xs
@@ -26,11 +28,14 @@ test xs = xs
 main :: IO ()
 main = do
   print "Hello"
+  let u = 2 * zz 0 3 * zz 1 3 * zz 2 3 + zz 2 3 * zz 2 3 * zz 2 3
+  let v = zz 0 3 * zz 1 3
+  print $ subtractMonomialTimes u 2 [0, 0, 1] v
 --   print $ x0/x0
 --   print $ take 8 $ test $ z0*exp (z0*z1)
 --   print $ take 8 $ test $ exp z0 - 1
 --   print $ take 5 $ test z0
-  print $ take 5 z0
+--   print $ take 5 z0
 --   print $ take 5 $ z0 / z0
 --   print $ take 8 $ z0*exp (z0*z1)/(exp z0 - 1)
 --   print $ take 50 z0
