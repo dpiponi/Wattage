@@ -42,7 +42,7 @@ perrin = 3 : 0 : 2 : perrin + tail perrin
 
 perrinAnn = [-1, -1, 0, 1]
 
-sample a = map (flip count a) [0..20]
+sample a = map (flip count a) [0..16]
 
 -- convolve a b
 -- a must not be finite, b may be
@@ -71,8 +71,11 @@ inverse _ = error "inverse applicable only to non-empty lists starting with 0"
 invert x = r where r = map (/x0)  ((1:repeat 0) ^- (r `convolve` (0:xs)))
                    x0:xs = x 
 
+divide y x = r where r = map (/x0)  (y ^- (r `convolve` (0:xs)))
+                     x0:xs = x 
+
 (^/) (0:a) (0:b) = a ^/ b
-(^/) a b = a `convolve` (invert b)
+(^/) a b = divide a b
 
 z :: Fractional a => [a]
 z = 0:1:repeat 0
