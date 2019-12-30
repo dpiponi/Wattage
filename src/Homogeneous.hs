@@ -91,6 +91,7 @@ type Z = Integer
 --   in ps
 -- --   in (fromIntegral (length ps) / fromIntegral (product [1 .. n]))
 
+fact :: Integer -> Integer
 fact n = product [1..n]
 
 -- cycleCounts mu = map snd (Map.toList (Map.fromListWith (+) (zip mu (repeat 1))))
@@ -103,15 +104,15 @@ fact n = product [1..n]
 --   in fromIntegral (fact m) /
 --     ((fromIntegral (naut mu)) * product [((fromIntegral (mu A.!A.!i))^(mu A.!A.!i))/(fromIntegral $ fact (mu A.!A.!i))*(fromIntegral $ mu A.!A.!i)^(n-3) | i <- [0..n-1]])
 -- 
-pochhammer :: Int -> Int -> Int
+pochhammer :: Integer -> Integer -> Integer
 pochhammer x n = product [x, x+1 .. x+n-1]
 
 addr :: Int -> [Int] -> Int
 addr _ [_] = 0
 addr deg exponents =
-  let m = length exponents - 1
-      r = deg - head exponents
-  in pochhammer r m `div` fact m + addr r (tail exponents)
+  let m = fromIntegral (length exponents - 1)
+      r = fromIntegral (deg - head exponents)
+  in fromInteger $ pochhammer r m `div` fact m + fromIntegral (addr (fromInteger r) (tail exponents))
 
 data Homogeneous a = Zero | H { degree :: Int, num_vars :: Int, coefficients :: A.Array Int a }
 --   deriving Show
@@ -205,12 +206,13 @@ x2 = make_var 2 3 :: Homogeneous Rational
 upgrade :: (Show a, Num a) => Int -> Homogeneous a -> Homogeneous a
 upgrade n Zero = Zero
 upgrade n1 (H d n0 c0) =
-  let s0 = pochhammer n0 d `div` fact d
-      s1 = pochhammer n1 d `div` fact d
+  let s0 = hdim n0 d -- pochhammer n0 d `div` fact d
+      s1 = hdim n1 d -- pochhammer n1 d `div` fact d
   in H d n1 $ array' (0, s1 - 1) [(i, if i < s0 then c0 A.! i else 0) | i <- [0 .. s1 - 1]]
 
 -- Dimension of space of degree d polynomials in n variables
-hdim n d = pochhammer n d `div` fact d
+hdim :: Int -> Int -> Int
+hdim n d = fromInteger (pochhammer (fromIntegral n) (fromIntegral d) `div` fact (fromIntegral d))
 
 htimes :: (Show a, Num a) => Homogeneous a -> Homogeneous a -> Homogeneous a
 htimes Zero _ = Zero

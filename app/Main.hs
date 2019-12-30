@@ -14,9 +14,9 @@ h x y = [1, 2] ... integrate (tail (integrate (
 -- make_zero n = H 1 n $ array (0, n-1) [(j, 0) | j <- [0 .. n-1]]
 
 z0 :: [Homogeneous Rational]
-z0 = Zero : make_var 0 3 : repeat Zero
-z1 = Zero : make_var 1 3 : repeat Zero
-z2 = Zero : make_var 2 3 : repeat Zero
+z0 = Zero : make_var 0 2 : repeat Zero
+z1 = Zero : make_var 1 2 : repeat Zero
+-- z2 = Zero : make_var 2 3 : repeat Zero
 
 zz = make_var
 
@@ -49,7 +49,7 @@ main = do
 --   print $ take 5 $ test z0
 --   print $ take 5 z0
 --   print $ take 5 $ z0 / z0
-  mapM_ print $ take 10 $ z0*exp (z0*z1)/(exp z0 - 1)
+  mapM_ print $ take 100 $ z0*exp (z0*z1)/(exp z0 - 1)
 --   print $ take 8 $ z0/z0
 --   print $ take 50 z0
 --   print $ take 10 $ z0*z0
