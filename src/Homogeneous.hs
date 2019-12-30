@@ -146,6 +146,18 @@ exponentSub a b = zipWith (-) a b
 allGreaterEqual :: [Int] -> [Int] -> Bool
 allGreaterEqual js ks = all id $ zipWith (>=) js ks
 
+decr :: Int -> [Int] -> Maybe [Int]
+decr _ [] = error "Can't decrement element of empty list"
+decr 0 (i : is) = if i > 0 then Just ((i - 1) : is) else Nothing
+decr n (i : is) = do
+    js <- decr (n - 1) is
+    return (i : js)
+
+incr :: Int -> [Int] -> [Int]
+incr _ [] = error "Can't increment element of empty list"
+incr 0 (i : is) = (i + 1) : is
+incr n (i : is) = i : incr (n - 1) is
+
 -- Optimise.
 -- Need to look at relationship between addr when d varies.
 -- Use to only init needed elements by walking through addresses,
@@ -240,3 +252,30 @@ instance (Eq a, Show a, Num a) => Num (Homogeneous a) where
   negate (H d n c) = H d n $ fmap negate c
   signum _ = error "No signum for Homogeneous"
   abs _ = error "No abs for Homogeneous"
+
+hderiv :: (Num a, Eq a, Show a) => Int -> Homogeneous a -> Homogeneous a
+hderiv i Zero = Zero
+hderiv i (H 0 n c) = Zero
+hderiv i (H d n c) =
+    let size = hdim n (d - 1)
+    in H (d - 1) n $ array' (0, size - 1) [(addr (d - 1) js, a) |
+                                           is <- allOfDegree d n,
+                                           let p = is !! i,
+                                           let mjs = decr i is,
+                                           mjs /= Nothing,
+                                           let Just js = mjs,
+                                           let a = fromIntegral p * (c A.! addr d is)]
+                                         
+hint :: (Num a, Eq a, Show a, Fractional a) => Int -> Homogeneous a -> Homogeneous a
+hint i Zero = Zero
+hint i h@(H d n c) | i >= n = hint i (upgrade (i+1) h)
+hint i h@(H d n c) = --trace (show (i, d, n, c)) $
+    let size = hdim n (d + 1)
+    in H (d + 1) n $ array' (0, size - 1) [(addr (d + 1) is, a) |
+                                           is <- allOfDegree (d + 1) n,
+                                           let mjs = decr i is,
+                                           let a = case mjs of
+                                                    Nothing -> 0
+                                                    Just js -> 
+                                                       let p = is !! i
+                                                       in  (c A.! addr d js) / fromIntegral p]

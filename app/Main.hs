@@ -24,10 +24,37 @@ test :: [Homogeneous Rational] -> [Homogeneous Rational]
 test (0 : xs) = xs
 test xs = xs
 
+u0 = make_var 0 2 :: Homogeneous Rational
+u1 = make_var 1 2 :: Homogeneous Rational
+
+pderiv :: (Num a, Eq a, Show a) => Int -> [Homogeneous a] -> [Homogeneous a]
+pderiv _ [] = error "Short formal power series"
+pderiv i (_ : xs) = map (hderiv i) xs
+
+pint :: (Num a, Eq a, Show a, Fractional a) => Int -> [Homogeneous a] -> [Homogeneous a]
+pint _ [] = error "Short formal power series"
+pint i xs = 0 : map (hint i) xs
+
+-- Actual hurwitz numbers
+-- https://arxiv.org/pdf/1605.07473.pdf
+--
 -- Exp doesn't need rational
 -- It needs a module over the rationals
 main :: IO ()
 main = do
+  print "Hello"
+  let x = z0
+  let y = z1
+  let intY = pint 1
+  let h x y = intY (intY (exp (h x (y * exp x) - 2 * h x y + h x (y * exp (-x)))) / y)
+--   print $ take 12 $ h x y
+  mapM_ print $ h x y
+--   print $ hderiv 1 $ u0 * u0 * u1 * u1 * u0 * u1
+--   print $ hint 1 $ u0 * u0 * u1 * u1
+--   print $ take 8 $ pderiv 0 $ z0+z0*z0*z1*z1
+--   print $ take 8 $ pint 1 $ z0 + z1 + z0*z1
+--   let pexp x = let e = 1 + pint 0 (e * pderiv 0 x) in e
+--   print $ take 8 $ pexp (z0*z1)
 --   print $ take 8 $ z/(1-z)
 --   print "Hello"
 --   let u0 = upgrade 3 x0
@@ -49,7 +76,7 @@ main = do
 --   print $ take 5 $ test z0
 --   print $ take 5 z0
 --   print $ take 5 $ z0 / z0
-  mapM_ print $ take 100 $ z0*exp (z0*z1)/(exp z0 - 1)
+--   mapM_ print $ take 100 $ z0*exp (z0*z1)/(exp z0 - 1)
 --   print $ take 8 $ z0/z0
 --   print $ take 50 z0
 --   print $ take 10 $ z0*z0
