@@ -65,13 +65,6 @@ instance (Show a, Num a, Eq a) => Show (Homogeneous a) where
       let c0 = c A.! i,
       c0 /= 0] ++ ">"
 
--- isMonomial :: (Num a, Eq a) => Homogeneous a -> Maybe [Int]
--- isMonomial Zero = Nothing
--- isMonomial (H d n c) =
---   let indices = allOfDegree d n
---       index = filter (\i -> (c A.! addr d i) /= 0) indices
---   in if length index == 1 then Just (head index) else Nothing
-
 instance (Fractional a, Show a, Eq a) => Fractional (Homogeneous a) where
   fromRational i = H 0 1 $ listArray' (0, 0) [fromRational i]
   _ / Zero = error "Division by zero"
@@ -105,17 +98,17 @@ allOfDegree d n = do
   js <- allOfDegree (d - i) (n-1)
   return (i : js)
 
-all_splits :: Int -> Int -> [Int] -> [([Int], [Int])]
-all_splits _ _ [] = error "Can only split a non-empty exponent list"
-all_splits d0 d1 [n] =
+allSplits :: Int -> Int -> [Int] -> [([Int], [Int])]
+allSplits _ _ [] = error "Can only split a non-empty exponent list"
+allSplits d0 d1 [n] =
   if n == d0 + d1
     then [([d0], [d1])]
     else []
-all_splits d0 d1 (i : is) = do
-  j0 <- [0 .. min i d0]
+allSplits d0 d1 (i : is) = do
+  j0 <- [max 0 (i - d1) .. min i d0]
   let j1 = i - j0
-  guard $ j1 >= 0 && j1 <= d1
-  (ks, ls) <- all_splits (d0 - j0) (d1 - j1) is
+--   guard $ j1 >= 0 && j1 <= d1
+  (ks, ls) <- allSplits (d0 - j0) (d1 - j1) is
   return (j0 : ks, j1 : ls)
 
 x0 = make_var 0 1 :: Homogeneous Rational
@@ -140,7 +133,7 @@ htimes (H d0 n0 c0) (H d1 n1 c1) =
   let d = d0 + d1
   in H d n0 $ array' (0, hdim n0 d - 1) $
        [(addr d is, sum [(c0 A.! addr d0 js)*(c1 A.! addr d1 ks) |
-                                 (js, ks) <- all_splits d0 d1 is]) |
+                                 (js, ks) <- allSplits d0 d1 is]) |
         is <- allOfDegree d n0]
 
 exponentAdd :: [Int] -> [Int] -> [Int]
@@ -176,8 +169,7 @@ leadingTerm :: (Eq a, Num a, Show a) => Homogeneous a -> Maybe [Int]
 leadingTerm Zero = Nothing
 leadingTerm (H d n c) =
     maybeHead $ [ ks |
-                      ks <- allOfDegree d n,
-                      let i = addr d ks,
+                      (i, ks) <- enumerate (allOfDegree d n),
                       c A.! i /= 0
                     ]
 
@@ -247,19 +239,3 @@ instance (Eq a, Show a, Num a) => Num (Homogeneous a) where
   negate (H d n c) = H d n $ fmap negate c
   signum _ = error "No signum for Homogeneous"
   abs _ = error "No abs for Homogeneous"
-
--- htimes :: Num a => Homogeneous a -> Homogeneous a -> Homogeneous a
--- htimes (H d0 n0 c0) (H d1 n1 c1) =
---   H (d0 + d1) n0 $ array' (0, (pochhammer n0 (d0 + d1) `div` fact (d0 + d1)) - 1) $
---     [(addr (d0 + d1) is, 1) | is <- allOfDegree (d0 + d1) n0]
-
-{-
-main = do
-  print $ hurwitz 1 [2]
-  print $ hurwitz 4 [3]
-  print $ hurwitz 2 [2, 2] -- I expect 1/2 ???
-  print $ hurwitz 0 [1, 1, 1]
-  print $ hurwitz 1 [2, 1, 1, 1]
-
-  print $ hh 1 [2, 1, 1, 1]
--}
