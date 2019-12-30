@@ -105,9 +105,10 @@ allSplits d0 d1 [n] =
     then [([d0], [d1])]
     else []
 allSplits d0 d1 (i : is) = do
-  j0 <- [max 0 (i - d1) .. min i d0]
+  let lower = max 0 (i - d1)
+  let upper = min i d0
+  j0 <- [upper, upper - 1 .. lower]
   let j1 = i - j0
---   guard $ j1 >= 0 && j1 <= d1
   (ks, ls) <- allSplits (d0 - j0) (d1 - j1) is
   return (j0 : ks, j1 : ls)
 
