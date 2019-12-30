@@ -23,22 +23,22 @@ type Q = Rational
 type Series a = [a]
 
 fibs :: (Eq a, Num a) => [a]
-fibs = 0 : 1 : fibs + tail fibs
+fibs = 0 : 1 : fibs ^+ tail fibs
 
 fibAnn = [-1, -1, 1]
 
 lucas :: (Eq a, Num a) => [a]
-lucas = 2 : 1 : lucas + tail lucas
+lucas = 2 : 1 : lucas ^+ tail lucas
 
 lucasAnn = [-1, -1, 1]
 
 tribs :: (Eq a, Num a) => [a]
-tribs = 0 : 0 : 1 : tribs + tail tribs + tail (tail tribs)
+tribs = 0 : 0 : 1 : tribs ^+ tail tribs ^+ tail (tail tribs)
 
 tribAnn = [-1, -1, -1, 1]
 
 perrin :: (Eq a, Num a) => [a]
-perrin = 3 : 0 : 2 : perrin + tail perrin
+perrin = 3 : 0 : 2 : perrin ^+ tail perrin
 
 perrinAnn = [-1, -1, 0, 1]
 
@@ -62,6 +62,8 @@ as `ann` bs = drop (length as - 1) (reverse as `lconvolve` bs)
 compose (f : fs) (0 : gs) = f : (gs `convolve` (compose fs (0 : gs)))
 compose _ _ = error "compose requires two non-empty lists, the second starting with 0"
 
+fcompose (F a) (F b) = F $ compose a b
+
 inverse (0:f:fs) = x where x     = map (recip f *) (0:1:g)
                            _:_:g    = map negate (compose (0:0:fs) x)
 
@@ -77,39 +79,45 @@ divide y x = r where r = map (/x0)  (y ^- (r `convolve` (0:xs)))
 (^/) (0:a) (0:b) = a ^/ b
 (^/) a b = divide a b
 
-z :: Fractional a => [a]
-z = 0:1:repeat 0
+z :: Fractional a => Formal a
+z = F $ 0:1:repeat 0
 
 eval :: Num b => [b] -> b -> b
 eval [] x = 0
 eval (a:as) x = a+x*eval as x
 
-d (_:x) = zipWith (*) (map fromInteger [1..]) x
+d (F (_:x)) = F $ zipWith (*) (map fromInteger [1..]) x
 d _ = error "You can only differentiate non-empty lists"
 
-integrate x = 0 : zipWith (/) x (map fromInteger [1..])
+dlist (_:x) = zipWith (*) (map fromInteger [1..]) x
+dlist _ = error "You can only differentiate non-empty lists"
+
+integrate (F x) = F $ 0 : zipWith (/) x (map fromInteger [1..])
 
 square x = x `convolve` x
 
-instance (Eq r, Num r) => Num [r] where
-    x+y  = zipWith (+) x y
-    x-y  = zipWith (-) x y
-    ~x*y = x `convolve` y
-    fromInteger x      = fromInteger x:repeat 0
-    negate x     = map negate x
-    signum (x:_) = signum x:repeat 0
-    signum _ = error "signum only applicable to non-empty lists"
-    abs (x:xs)   = error "Can't form abs of a power series"
-    abs _ = error "abs only applicable to non-empty lists"
+newtype Formal a = F {unF::[a]} deriving (Show, Eq)
 
-instance (Eq r, Fractional r) => Fractional [r] where
-    x/y = x ^/ y
-    fromRational x    = fromRational x:repeat 0
+mapf :: (a -> b) -> Formal a -> Formal b
+mapf f (F xs) = F $ map f xs
+
+instance (Eq r, Num r) => Num (Formal r) where
+    F x+F y  = F $ zipWith (+) x y
+    F x - F y  = F $ zipWith (-) x y
+    F x * F y = F $ x `convolve` y
+    fromInteger x      = F $ fromInteger x:repeat 0
+    negate (F x)     = F $ map negate x
+    signum _ = error "signum only applicable to non-empty lists"
+    abs _   = error "Can't form abs of a power series"
+
+instance (Eq r, Fractional r) => Fractional (Formal r) where
+    F x/F y = F $ x ^/ y
+    fromRational x    = F $ fromRational x:repeat 0
 
 sqrt' x = 1:rs where rs = map (/2) (xs ^- (rs `convolve` (0:rs)))
                      _:xs = x
-instance (Eq r, Fractional r) => Floating [r] where
-    sqrt (1:x) = sqrt' (1:x)
+instance (Eq r, Fractional r) => Floating (Formal r) where
+    sqrt (F (1:x)) = F $ sqrt' (1:x)
     sqrt _      = error "Can only find sqrt when leading term is 1"
     exp x      = e where e = 1+integrate (e * d x) -- XXX throws away leading term
     log x      = integrate (d x/x)
@@ -125,16 +133,16 @@ instance (Eq r, Fractional r) => Floating [r] where
     acosh x      = error "Unable to form power series for acosh"
     pi       = error "There is no formal power series for pi"
 
-cbrt x = exp (map (/ 3) $ log x)
+cbrt x = exp (mapf (/ 3) $ log x)
 
-t :: (Eq a, Num a) => ([a])
-t = 0:1:repeat 0
-t' :: [Rational]
+t :: (Eq a, Num a) => Formal a
+t = F $ 0:1:repeat 0
+t' :: Formal Rational
 t' = t
 
 lead [] x = x
 lead (a:as) x = a : (lead as (tail x))
-a ... x = lead a x
+a ... F x = F $ lead a x
 
 one = t'
 list x     = 1/(1-x)
@@ -154,12 +162,12 @@ count n a = ((a!!(fromInteger n)) * (factorial (fromInteger n)))
 
 tree x = p where p = [0] ... union (set p) x
 
-graph = [2^((n*(n-1) `div` 2)) / product (map fromInteger [1..n]) | n <- [0..]] :: [Rational]
+graph = F $ [2^((n*(n-1) `div` 2)) / product (map fromInteger [1..n]) | n <- [0..]] :: Formal Rational
 
 connectedGraph = 1 + log graph
 
 delta (g : gs) h = let g' = delta gs h
-                   in (0 : ((1 : h) * g')) + gs
+                   in (0 : ((1 : h) `convolve` g')) ^+ gs
 delta _ _ = error "First argument to delta must be non-empty"
 
 -- fsqrt (0 : 1 : fs) =
@@ -177,36 +185,44 @@ p f t = (t `compose` f) ^- t
 --  `itexp . itlog = id`
 --  `itexp (n * itlog f) = f . f . ... n times ... f`
 --  `itexp (-itlog f) = invert f`
-itlog :: (Eq a, Fractional a) => [a] -> [a]
-itlog f@(0 : 1 : _) = itlog' f 1 0 z
-         where itlog' f n t z = take (n+1) t ... 
+itlog :: (Eq a, Fractional a) => Formal a -> Formal a
+itlog f@(F (0 : 1 : _)) = F $ itlog' (unF f) 1 (unF 0) (unF z)
+         where itlog' f n t z = take (n+1) t `lead`
                     let pz = p f z
-                    in itlog' f (n+1) (t ^- map (((-1)^n / fromIntegral n) *) pz) pz
+                    in itlog' f (n+1) (t ^- map ( ((-1)^n / fromIntegral n) *) pz) pz
 itlog _ = error "itlog only applicable to series starting z+..."
 
 -- |The 'itexp' function computes the inverse of the iterative logarithm of
 --  its argument.
 --  See https://www.math.ucla.edu/~matthias/pdf/zvonkine.pdf
-itexp f@(0 : 0 : _) = itexp' f 0 t' 1
+itexp f@(F (0 : 0 : _)) = F $ itexp' (unF f) (unF 0) (unF t') 1
 itexp _ = error "itexp only applicable to series starting a*z^2+..."
-itexp' f total term n = take (n - 1) total ...
-            itexp' f (total + term) (map (/fromIntegral n) (f*d term)) (n+1)
+itexp' :: (Num a, Eq a, Fractional a) => [a] -> [a] -> [a] -> Int -> [a]
+itexp' f total term n = take (n - 1) total `lead`
+            itexp' f (total ^+ term) (map (/fromIntegral n) (f `convolve` dlist term)) (n+1)
 
 itsqrt x = itexp ((itlog x) / 2)
 itpow x n = itexp ((itlog x) * n)
 
+prepend :: a -> Formal a -> Formal a
+prepend a (F bs) = F (a : bs)
+
+ftail :: Formal a -> Formal a
+ftail (F []) = error "Can't get ftail of empty list"
+ftail (F (_ : xs)) = F xs
+
 -- hypergeometric
-f01 :: (Num a, Fractional a, Eq a) => a -> [a] -> [a]
-f01 a x = let f an a n = an : f (an/(a*n)) (a+1) (n+1)
-          in  f 1 a 1  `compose` x
+f01 :: (Num a, Fractional a, Eq a) => a -> Formal a -> Formal a
+f01 a x = let f an a n = an `prepend` f (an/(a*n)) (a+1) (n+1)
+          in  f 1 a 1  `fcompose` x
 
-f21 :: (Num a, Fractional a, Eq a) => a -> a -> a -> [a] -> [a]
-f21 a b c x = let f abcn a b c n = abcn : f (abcn*a*b/(c*n)) (a+1) (b+1) (c+1) (n+1)
-              in  f 1 a b c 1 `compose` x
+f21 :: (Num a, Fractional a, Eq a) => a -> a -> a -> Formal a -> Formal a
+f21 a b c x = let f abcn a b c n = abcn `prepend` f (abcn*a*b/(c*n)) (a+1) (b+1) (c+1) (n+1)
+              in  f 1 a b c 1 `fcompose` x
 
-hypergeometric :: (Num a, Fractional a, Eq a) => [a] -> [a] -> Series a -> Series a
-hypergeometric a b x = let f abn a b n = abn : f (abn*product a/(n * product b)) (map (+1) a) (map (+1) b) (n+1)
-                       in  f 1 a b 1 `compose` x
+hypergeometric :: (Num a, Fractional a, Eq a) => [a] -> [a] -> Formal a -> Formal a
+hypergeometric a b x = let f abn a b n = abn `prepend` f (abn*product a/(n * product b)) (map (+1) a) (map (+1) b) (n+1)
+                       in  f 1 a b 1 `fcompose` x
 
 -- 2/pi * ellipticK
 scaledEllipticK x = f21 (1/2) (1/2) 1 (x*x)
@@ -311,6 +327,6 @@ instance Fractional FreeNum where
 factorial 0 = 1
 factorial n = n*factorial (n-1)
 
-besselJ :: (Eq x, Fractional x) => Integer -> [x] -> [x]
+besselJ :: (Eq x, Fractional x) => Integer -> Formal x -> Formal x
 besselJ n x = let scale = 1/fromRational (fromIntegral (factorial n))
-              in map (scale *) $ f01 (fromInteger n + 1) (-x^2 / 4) * (x / 2)^n
+              in mapf (scale *) $ f01 (fromInteger n + 1) (-x^2 / 4) * (x / 2)^n

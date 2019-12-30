@@ -8,14 +8,14 @@ import Data.Ratio
 
 lift x = x : repeat 0
 
-h x y = [1, 2] ... integrate (tail (integrate (
-  exp (h x (y * lift (exp x)) - 2 * h x y + h x (y * lift (exp (-x)))))))
+-- h x y = [1, 2] ... integrate (ftail (integrate (
+--   exp (h x (y * lift (exp x)) - 2 * h x y + h x (y * lift (exp (-x)))))))
 
 -- make_zero n = H 1 n $ array (0, n-1) [(j, 0) | j <- [0 .. n-1]]
 
-z0 :: [Homogeneous Rational]
-z0 = Zero : make_var 0 2 : repeat Zero
-z1 = Zero : make_var 1 2 : repeat Zero
+z0 :: MFormal Rational
+z0 = F $ Zero : make_var 0 2 : repeat Zero
+z1 = F $ Zero : make_var 1 2 : repeat Zero
 -- z2 = Zero : make_var 2 3 : repeat Zero
 
 zz = make_var
@@ -27,13 +27,13 @@ test xs = xs
 u0 = make_var 0 2 :: Homogeneous Rational
 u1 = make_var 1 2 :: Homogeneous Rational
 
-pderiv :: (Num a, Eq a, Show a) => Int -> [Homogeneous a] -> [Homogeneous a]
-pderiv _ [] = error "Short formal power series"
-pderiv i (_ : xs) = map (hderiv i) xs
+type MFormal a = Formal (Homogeneous a)
 
-pint :: (Num a, Eq a, Show a, Fractional a) => Int -> [Homogeneous a] -> [Homogeneous a]
-pint _ [] = error "Short formal power series"
-pint i xs = 0 : map (hint i) xs
+pderiv :: (Num a, Eq a, Show a) => Int -> MFormal a -> MFormal a
+pderiv i xs = mapf (hderiv i) (ftail xs)
+
+pint :: (Num a, Eq a, Show a, Fractional a) => Int -> MFormal a -> MFormal a
+pint i xs = 0 `prepend` mapf (hint i) xs
 
 -- Actual hurwitz numbers
 -- https://arxiv.org/pdf/1605.07473.pdf
@@ -48,7 +48,7 @@ main = do
   let intY = pint 1
   let h x y = intY (intY (exp (h x (y * exp x) - 2 * h x y + h x (y * exp (-x)))) / y)
 --   print $ take 12 $ h x y
-  mapM_ print $ h x y
+  mapM_ print $ unF $ h x y
 --   print $ hderiv 1 $ u0 * u0 * u1 * u1 * u0 * u1
 --   print $ hint 1 $ u0 * u0 * u1 * u1
 --   print $ take 8 $ pderiv 0 $ z0+z0*z0*z1*z1
