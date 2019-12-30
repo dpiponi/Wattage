@@ -8,6 +8,7 @@ module Homogeneous where
 
 import qualified Data.Array as A
 import qualified Data.Array.MArray as M
+import qualified Data.Map as Map
 import Data.Array.ST
 import Control.Monad
 import qualified Data.List as L
@@ -19,91 +20,10 @@ import Wattage
 import Control.DeepSeq
 
 type Z = Integer
--- type Q = Ratio Integer
-
--- type Permutation = A.Array Z Z
-
--- fromList :: Z -> [(Z, Z)] -> Permutation
--- fromList n as = array' (0, n - 1) as
--- 
--- transpose :: Z -> Z -> Z -> Permutation
--- transpose n a b = fromList n [(i, if i == a then b else (if i == b then a else i)) | i <- [0..n-1]]
--- 
--- identity n = fromList n [(i, i) | i <- [0..n-1]]
--- 
--- hcompose :: Permutation -> Permutation -> Permutation
--- hcompose a b = let m = snd (A.bounds a)
---               in fromList (m + 1) [(i, a A.! (b A.! i)) | i <- [0 .. m]]
--- 
--- -- cycle_length :: Permutation -> Z -> Z
--- -- cycle_length a i = cycle_length' a i (aA.!i)
--- --   where cycle_length' _ i j | i == j = 1
--- --         cycle_length' a i j = 1 + cycle_length' a i (aA.!j)
--- 
--- test :: Permutation -> [Z]
--- test a = L.reverse $ L.sort $ runST $ do
---   let m = snd (A.bounds a)
---   flags :: STArray s Z Bool <- M.newArray (0, m) False
---   a' <- M.thaw a :: ST s (STArray s Z Z)
---   let cycles_from i | i > m = return []
---       cycles_from i = do
---         j <- readArray flags i
---         if j then cycles_from (i + 1)
---           else do
---             let cycle_length i k | i == k = return 1
---                 cycle_length i k = do
---                   writeArray flags k True
---                   l <- readArray a' k
---                   n <- cycle_length i l
---                   return (n + 1)
---             writeArray flags i True
---             k <- readArray a' i
---             r <- cycle_length i k
---             c <- cycles_from (i + 1)
---             return $ (r : c)
---   cycles_from 0
--- 
--- hurwitz :: Z -> [Z] -> Q
--- hurwitz m mu =
---   let n = sum mu
---       ps = (do
---               etas <- replicateM (fromIntegral m) $ do
---                     i <- [0 .. n-2]
---                     j <- [i+1 .. n-1]
---                     return $ transpose n i j
---               let p = foldr hcompose (identity n) etas
---               guard $ test p == mu
---               return p)
--- --   in ps
---   in (fromIntegral (length ps) / fromIntegral (product [1 .. n]))
--- 
--- -- hurwitz :: Z -> [Z] -> Q
--- hurwitz' m mu =
---   let n = sum mu
---       ps = (do
---               etas <- replicateM (fromIntegral m) $ do
---                     i <- [0 .. n-2]
---                     j <- [i+1 .. n-1]
---                     return $ transpose n i j
---               let p = foldr hcompose (identity n) etas
---               guard $ test p == mu
---               return p)
---   in ps
--- --   in (fromIntegral (length ps) / fromIntegral (product [1 .. n]))
 
 fact :: Integer -> Integer
 fact n = product [1..n]
 
--- cycleCounts mu = map snd (Map.toList (Map.fromListWith (+) (zip mu (repeat 1))))
--- 
--- naut mu = product (map fact (cycleCounts mu))
--- 
--- hh m mu =
---   let smu = sum mu
---       n = m + 2 - smu
---   in fromIntegral (fact m) /
---     ((fromIntegral (naut mu)) * product [((fromIntegral (mu A.!A.!i))^(mu A.!A.!i))/(fromIntegral $ fact (mu A.!A.!i))*(fromIntegral $ mu A.!A.!i)^(n-3) | i <- [0..n-1]])
--- 
 pochhammer :: Integer -> Integer -> Integer
 pochhammer x n = product [x, x+1 .. x+n-1]
 
@@ -117,20 +37,40 @@ addr deg exponents =
 data Homogeneous a = Zero | H { degree :: Int, num_vars :: Int, coefficients :: A.Array Int a }
 --   deriving Show
 
+superscripts, subscripts :: Map.Map Char Char
+superscripts = Map.fromList $ zip "0123456789-" "⁰¹²³⁴⁵⁶⁷⁸⁹⁻"
+subscripts = Map.fromList $ zip "0123456789-" "₀₁₂₃₄₅₆₇₈₉₋"
+
+superscript :: Int -> String
+superscript = map (\c -> Map.findWithDefault c c superscripts) . show
+
+subscript :: Int -> String
+subscript = map (\c -> Map.findWithDefault c c subscripts) . show
+
+enumerate :: [a] -> [(Int, a)]
+enumerate as = zip [0 ..] as
+
+showVar :: Int -> Int -> String
+showVar i k = "x" ++ subscript i ++ superscript k
+
+showTerm :: (Show a, Num a, Eq a) => a -> [Int] -> String
+showTerm c0 js = showsPrec 8 c0 $ concat [showVar i j |
+                                          (i, j) <- enumerate js, j /= 0]
+
 instance (Show a, Num a, Eq a) => Show (Homogeneous a) where
   showsPrec p Zero = showString "0"
   showsPrec p (H d n c) = showParen (p > 5) $ showString $ "<" ++ L.intercalate "+" [
-    show c0 ++ "*" ++ concat ["x"++show i ++ "^" ++ show j | (i, j) <- zip [0..] js, j /= 0] |
-      js <- allOfDegree d n,
-      let c0 = c A.! addr d js,
+    showTerm c0 js |
+      (i, js) <- enumerate (allOfDegree d n),
+      let c0 = c A.! i,
       c0 /= 0] ++ ">"
 
-isMonomial :: (Num a, Eq a) => Homogeneous a -> Maybe [Int]
-isMonomial Zero = Nothing
-isMonomial (H d n c) =
-  let indices = allOfDegree d n
-      index = filter (\i -> (c A.! addr d i) /= 0) indices
-  in if length index == 1 then Just (head index) else Nothing
+-- isMonomial :: (Num a, Eq a) => Homogeneous a -> Maybe [Int]
+-- isMonomial Zero = Nothing
+-- isMonomial (H d n c) =
+--   let indices = allOfDegree d n
+--       index = filter (\i -> (c A.! addr d i) /= 0) indices
+--   in if length index == 1 then Just (head index) else Nothing
 
 instance (Fractional a, Show a, Eq a) => Fractional (Homogeneous a) where
   fromRational i = H 0 1 $ listArray' (0, 0) [fromRational i]
@@ -141,28 +81,6 @@ instance (Fractional a, Show a, Eq a) => Fractional (Homogeneous a) where
             h0' = if n0 < n then upgrade n h0 else h0
             h1' = if n1 < n then upgrade n h1 else h1
         in hdivide 0 h0' h1'
-
---   recip (H d n c) | d == 0 = H d n $ fmap recip c
---   recip h = error $ "No recip of " ++ show h
-
--- checkList :: [a] -> [a]
--- checkList [] = []
--- checkList (a : as) = a `seq` checkList as
--- 
--- check :: Array i a -> Array i a
--- check a = checkList (A.elems a) `seq` a
-
--- array' bounds elems =
---     if snd bounds - fst bounds /= length elems - 1
---       then error $ "\x1b[41m;ARRAY:" ++ show bounds ++ ": " ++ show elems
---       else let a = A.array bounds elems
---            in trace(show(bounds, elems)) $ trace (show a) $ a
--- 
--- listArray' bounds elems =
---     if snd bounds - fst bounds /= length elems - 1
---       then error $ "\x1b[41m;LISTARRAY:" ++ show bounds ++ ": " ++ show elems
---       else let a = A.listArray bounds elems
---            in trace(show(bounds, elems)) $ trace (show a) $ a
 
 listArray' = A.listArray
 array' = A.array
@@ -176,13 +94,14 @@ makeMonomial a ks =
         n = length ks
         size = hdim n d
         i = addr d ks
-        m = H d n $ array' (0, size - 1) [(j, if j == i then a else 0) | j <- [0 .. size - 1]]
+        m = H d n $ array' (0, size - 1) [(j, if j == i then a else 0) |
+                                          j <- [0 .. size - 1]]
     in m
 
 allOfDegree :: Int -> Int -> [[Int]]
 allOfDegree d 1 = [[d]]
 allOfDegree d n = do
-  i <- [0 .. d]
+  i <- [d, d-1 .. 0]
   js <- allOfDegree (d - i) (n-1)
   return (i : js)
 
