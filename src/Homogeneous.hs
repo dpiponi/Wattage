@@ -149,7 +149,10 @@ exponentSub :: Exponent -> Exponent -> Exponent
 exponentSub a b = zipWith (-) a b
 
 allGreaterEqual :: Exponent -> Exponent -> Bool
-allGreaterEqual js ks = all id $ zipWith (>=) js ks
+allGreaterEqual [] [] = True
+allGreaterEqual [] _ = error "Mismatched exponents"
+allGreaterEqual _ [] = error "Mismatched exponents"
+allGreaterEqual (x : xs) (y : ys) = x >= y && allGreaterEqual xs ys
 
 decr :: Int -> Exponent -> Maybe Exponent
 decr _ [] = error "Can't decrement element of empty list"
@@ -230,7 +233,7 @@ instance (Eq a, Num a, Show a) => Eq (Homogeneous a) where
     let n = max n0 n1
         H d0' n0' c0' = if n0 < n then upgrade n h0 else h0
         H d1' n1' c1' = if n1 < n then upgrade n h1 else h1
-    in trace (show (c0', c1')) $ c0' == c1'
+    in c0' == c1'
   _ == _ = False
 
 instance (Eq a, Show a, Num a) => Num (Homogeneous a) where

@@ -15,8 +15,12 @@ import Debug.Trace
 (*!) a b = a*b
 (!*) 0 _ = 0
 (!*) a b = a*b
-(^+) a b = zipWithIdentity (+) 0 a b
-(^-) a b = zipWithIdentity (-) 0 a b
+a ^+ [] = a
+[] ^+ b = b
+(a : as) ^+ (b : bs) = (a + b) : (as ^+ bs)
+a ^- [] = a
+[] ^- b = map negate b
+(a : as) ^- (b : bs) = (a - b) : (as ^- bs)
 
 type Q = Rational
 
@@ -47,15 +51,15 @@ sample a = map (flip count a) [0..16]
 -- convolve a b
 -- a must not be finite, b may be
 -- result is not finite
-~(a : as) `convolve` bbs@(b : bs) = (a *! b) :
+[] `convolve` _ = []
+_ `convolve` [] = []
+(a : as) `convolve` bbs@(b : bs) = (a *! b) :
     ((map (a !*) bs) ^+ (as `convolve` bbs))
-
-~(a : as) `convolve` [] = repeat 0
 
 aas@(a : as) `lconvolve` ~(b : bs) = (a !* b) :
     ((map (*! b) as) ^+ (aas `lconvolve` bs))
 
-[] `lconvolve` ~(a : as) = repeat 0
+[] `lconvolve` ~(a : as) = []
 
 as `ann` bs = drop (length as - 1) (reverse as `lconvolve` bs)
 
@@ -64,23 +68,23 @@ compose _ _ = error "compose requires two non-empty lists, the second starting w
 
 fcompose (F a) (F b) = F $ compose a b
 
-inverse (0:f:fs) = x where x     = map (recip f *) (0:1:g)
+inverse (0:f:fs) = x where x     = 0 : map (recip f *) (0:1:g)
                            _:_:g    = map negate (compose (0:0:fs) x)
 
 inverse _ = error "inverse applicable only to non-empty lists starting with 0"
 
 -- reciprocal
-invert x = r where r = map (/x0)  ((1:repeat 0) ^- (r `convolve` (0:xs)))
-                   x0:xs = x 
+invert x = r where r = map (/ x0)  ([1] ^- (0 : (r `convolve` xs)))
+                   x0 : xs = x 
 
-divide y x = r where r = map (/x0)  (y ^- (r `convolve` (0:xs)))
-                     x0:xs = x 
+divide y x = r where r = map (/ x0)  (y ^- (0 : (r `convolve` xs)))
+                     x0 : xs = x 
 
 (^/) (0:a) (0:b) = a ^/ b
 (^/) a b = divide a b
 
 z :: Fractional a => Formal a
-z = F $ 0:1:repeat 0
+z = F [0, 1]
 
 eval :: Num b => [b] -> b -> b
 eval [] x = 0
@@ -96,25 +100,25 @@ integrate (F x) = F $ 0 : zipWith (/) x (map fromInteger [1..])
 
 square x = x `convolve` x
 
-newtype Formal a = F {unF::[a]} deriving (Show, Eq)
+newtype Formal a = F { unF :: [a] } deriving (Show, Eq)
 
 mapf :: (a -> b) -> Formal a -> Formal b
 mapf f (F xs) = F $ map f xs
 
 instance (Eq r, Num r) => Num (Formal r) where
-    F x+F y  = F $ zipWith (+) x y
-    F x - F y  = F $ zipWith (-) x y
+    F x+F y  = F $ x ^+ y
+    F x - F y  = F $ x ^- y
     F x * F y = F $ x `convolve` y
-    fromInteger x      = F $ fromInteger x:repeat 0
+    fromInteger x      = F [fromInteger x]
     negate (F x)     = F $ map negate x
     signum _ = error "signum only applicable to non-empty lists"
     abs _   = error "Can't form abs of a power series"
 
 instance (Eq r, Fractional r) => Fractional (Formal r) where
     F x/F y = F $ x ^/ y
-    fromRational x    = F $ fromRational x:repeat 0
+    fromRational x    = F [fromRational x]
 
-sqrt' x = 1:rs where rs = map (/2) (xs ^- (rs `convolve` (0:rs)))
+sqrt' x = 1:rs where rs = map (/2) (xs ^- (0:(rs `convolve` rs)))
                      _:xs = x
 instance (Eq r, Fractional r) => Floating (Formal r) where
     sqrt (F (1:x)) = F $ sqrt' (1:x)
@@ -136,7 +140,7 @@ instance (Eq r, Fractional r) => Floating (Formal r) where
 cbrt x = exp (mapf (/ 3) $ log x)
 
 t :: (Eq a, Num a) => Formal a
-t = F $ 0:1:repeat 0
+t = F [0, 1]
 t' :: Formal Rational
 t' = t
 
@@ -153,6 +157,7 @@ oneOf a b   = a+b
 necklace x  = -log(1-x)/2+x/2+x*x/4
 union a b   = a*b
 
+-- Filter
 (//) :: Fractional a => [a] -> (Integer -> Bool) -> [a]
 (//) a c = zipWith (\a-> \b->(if (c a :: Bool) then b else 0)) [(0::Integer)..] a
 
@@ -210,6 +215,9 @@ prepend a (F bs) = F (a : bs)
 ftail :: Formal a -> Formal a
 ftail (F []) = error "Can't get ftail of empty list"
 ftail (F (_ : xs)) = F xs
+
+ftake :: Int -> Formal a -> [a]
+ftake i (F as) = take i as
 
 -- hypergeometric
 f01 :: (Num a, Fractional a, Eq a) => a -> Formal a -> Formal a

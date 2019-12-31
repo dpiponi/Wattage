@@ -6,7 +6,7 @@ import Homogeneous hiding (test)
 import Data.Array
 import Data.Ratio
 
-lift x = x : repeat 0
+-- lift x = x : repeat 0
 
 -- h x y = [1, 2] ... integrate (ftail (integrate (
 --   exp (h x (y * lift (exp x)) - 2 * h x y + h x (y * lift (exp (-x)))))))
@@ -14,9 +14,8 @@ lift x = x : repeat 0
 -- make_zero n = H 1 n $ array (0, n-1) [(j, 0) | j <- [0 .. n-1]]
 
 z0 :: MFormal Rational
-z0 = F $ Zero : make_var 0 2 : repeat Zero
-z1 = F $ Zero : make_var 1 2 : repeat Zero
--- z2 = Zero : make_var 2 3 : repeat Zero
+z0 = F [Zero, make_var 0 2]
+z1 = F [Zero, make_var 1 2]
 
 zz = make_var
 

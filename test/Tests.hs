@@ -1,5 +1,6 @@
 import Poly
 import Wattage
+import Homogeneous hiding (test)
 import Test.Tasty
 import Test.Tasty.HUnit
 import System.Environment
@@ -10,7 +11,8 @@ main = do
 tests = testGroup "Tests"
     [ testBasic,
       testAnnihilators,
-      testHypergeometric ]
+      testHypergeometric,
+      testMultivariate ]
 
 -- Basic functionality
 testBasic = testGroup "Tests of basic functionality"
@@ -53,30 +55,30 @@ testHypergeometric = testGroup "Hypergeometric tests"
       testCase "Identity 3" testIdentity3]
 
 testDilogarithmHypergeometric =
-    take 10 (dilog z :: [Q]) @?= take 10 (z*hypergeometric [1, 1, 1] [2, 2] z)
+    ftake 10 (dilog z :: Formal Q) @?= ftake 10 (z*hypergeometric [1, 1, 1] [2, 2] z)
 
 testRationalHypergeometric =
     let a = 1/3 :: Q
-    in take 10 (hypergeometric [a] [] z) @?= take 10 (exp (log (1-z)*(-fromRational a)))
+    in ftake 10 (hypergeometric [a] [] z) @?= ftake 10 (exp (log (1-z)*(-fromRational a)))
 
 testExpHypergeometric =
-    take 10 (hypergeometric [] [] z) @?= take 10 (exp z)
+    ftake 10 (hypergeometric [] [] z) @?= ftake 10 (exp z)
 
 testIdentity3 =
     let a = 1/3
         b = 1/5
-        lhs = exp(-z/2)*hypergeometric [a, 1+b] [2*a+1, b] z :: [Q]
+        lhs = exp(-z/2)*hypergeometric [a, 1+b] [2*a+1, b] z :: Formal Q
         term1 = hypergeometric [] [a+1/2] (z^2/16)
-        term2 = map ((1-(2*a)/b)/(2*(2*a+1)) *) (z*hypergeometric [] [a+3/2] (z^2/16)) :: [Q]
+        term2 = mapf ((1-(2*a)/b)/(2*(2*a+1)) *) (z*hypergeometric [] [a+3/2] (z^2/16)) :: Formal Q
         rhs = term1 - term2
-    in take 10 lhs @?= take 10 rhs
+    in ftake 10 lhs @?= ftake 10 rhs
 
 -- http://mathworld.wolfram.com/KummersRelation.html
 testKummerRelation =
   let a = 1/3
       b = 1/5
-      u = f21 (2*a) (2*b) (a+b+1/2) z - f21 a b (a+b+1/2) (4*z*(1-z)) :: [Q]
-  in take 10 u @?= take 10 (repeat 0)
+      u = f21 (2*a) (2*b) (a+b+1/2) z - f21 a b (a+b+1/2) (4*z*(1-z)) :: Formal Q
+  in ftake 10 u @?= take 10 (repeat 0)
 
 -- https://en.wikipedia.org/wiki/Clausen%27s_formula
 testClausenFormula =
@@ -84,6 +86,24 @@ testClausenFormula =
      b = 1/3
      c = 1/4
      s = 1/5
-     u = hypergeometric [2*c-2*s-1,2*s,c-1/2] [2*c-1,c] z - (f21 (c-s-1/2) s c z)^2 :: [Q]
- in take 10 u @?= take 10 (repeat 0)
+     u = hypergeometric [2*c-2*s-1,2*s,c-1/2] [2*c-1,c] z - (f21 (c-s-1/2) s c z)^2 :: Formal Q
+ in ftake 10 u @?= take 10 (repeat 0)
 
+-- Multivariate tests
+testMultivariate = testGroup "Multivariate tests" 
+    [ testCase "Hurwitz numbers" testHurwitzNumbers]
+
+type MFormal a = Formal (Homogeneous a)
+
+testHurwitzNumbers =
+  let x0 = make_var 0 2
+      x1 = make_var 1 2
+      z0 = F $ Zero : x0 : repeat Zero :: MFormal Rational
+      z1 = F $ Zero : x1 : repeat Zero :: MFormal Rational
+      x = z0
+      y = z1
+      intY = pint 1
+      pint i xs = 0 `prepend` mapf (hint i) xs
+      h x y = intY (intY (exp (h x (y * exp x) - 2 * h x y + h x (y * exp (-x)))) / y)
+      term6 = unF (h x y) !! 8
+  in term6 @?= (1 / 1440) * x0 * x0 * x0 * x0 * x0 * x0 * x1 * x1
