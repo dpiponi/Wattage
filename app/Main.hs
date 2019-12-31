@@ -48,7 +48,7 @@ main = do
   let intY = pint 1
   let h x y = intY (intY (exp (h x (y * exp x) - 2 * h x y + h x (y * exp (-x)))) / y)
 --   print $ take 12 $ h x y
-  mapM_ print $ unF $ h x y
+  mapM_ print $ take 12 $ unF $ h x y
 --   print $ hderiv 1 $ u0 * u0 * u1 * u1 * u0 * u1
 --   print $ hint 1 $ u0 * u0 * u1 * u1
 --   print $ take 8 $ pderiv 0 $ z0+z0*z0*z1*z1

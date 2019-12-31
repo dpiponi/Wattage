@@ -27,7 +27,9 @@ fact n = product [1..n]
 pochhammer :: Integer -> Integer -> Integer
 pochhammer x n = product [x, x+1 .. x+n-1]
 
-addr :: Int -> [Int] -> Int
+type Exponent = [Int]
+
+addr :: Int -> Exponent -> Int
 addr _ [_] = 0
 addr deg exponents =
   let m = fromIntegral (length exponents - 1)
@@ -53,7 +55,7 @@ enumerate as = zip [0 ..] as
 showVar :: Int -> Int -> String
 showVar i k = "x" ++ subscript i ++ superscript k
 
-showTerm :: (Show a, Num a, Eq a) => a -> [Int] -> String
+showTerm :: (Show a, Num a, Eq a) => a -> Exponent -> String
 showTerm c0 js = showsPrec 8 c0 $ concat [showVar i j |
                                           (i, j) <- enumerate js, j /= 0]
 
@@ -81,7 +83,7 @@ array' = A.array
 make_var :: (Show a, Num a) => Int -> Int -> Homogeneous a
 make_var i n = H {degree=1, num_vars=n, coefficients=array' (0, n-1) [(j, if i == j then 1 else 0) | j <- [0 .. n-1]] }
 
-makeMonomial :: (Show a, Eq a, Num a) => a -> [Int] -> Homogeneous a
+makeMonomial :: (Show a, Eq a, Num a) => a -> Exponent -> Homogeneous a
 makeMonomial a ks = 
     let d = sum ks
         n = length ks
@@ -91,14 +93,14 @@ makeMonomial a ks =
                                           j <- [0 .. size - 1]]
     in m
 
-allOfDegree :: Int -> Int -> [[Int]]
+allOfDegree :: Int -> Int -> [Exponent]
 allOfDegree d 1 = [[d]]
 allOfDegree d n = do
   i <- [d, d-1 .. 0]
   js <- allOfDegree (d - i) (n-1)
   return (i : js)
 
-allSplits :: Int -> Int -> [Int] -> [([Int], [Int])]
+allSplits :: Int -> Int -> Exponent -> [(Exponent, Exponent)]
 allSplits _ _ [] = error "Can only split a non-empty exponent list"
 allSplits d0 d1 [n] =
   if n == d0 + d1
@@ -127,33 +129,36 @@ upgrade n1 (H d n0 c0) =
 hdim :: Int -> Int -> Int
 hdim n d = fromInteger (pochhammer (fromIntegral n) (fromIntegral d) `div` fact (fromIntegral d))
 
+makeHomogeneous :: Int -> Int -> (Exponent -> a) -> Homogeneous a
+makeHomogeneous d n f =
+    H d n $ array' (0, hdim n d -1) $ [(i, f is) |
+                                       (i, is) <- enumerate (allOfDegree d n)]
+
 htimes :: (Show a, Num a) => Homogeneous a -> Homogeneous a -> Homogeneous a
 htimes Zero _ = Zero
 htimes _ Zero = Zero
 htimes (H d0 n0 c0) (H d1 n1 c1) =
-  let d = d0 + d1
-  in H d n0 $ array' (0, hdim n0 d - 1) $
-       [(addr d is, sum [(c0 A.! addr d0 js)*(c1 A.! addr d1 ks) |
-                                 (js, ks) <- allSplits d0 d1 is]) |
-        is <- allOfDegree d n0]
+  makeHomogeneous (d0 + d1) n0 $ \is ->
+       sum [(c0 A.! addr d0 js)*(c1 A.! addr d1 ks) |
+            (js, ks) <- allSplits d0 d1 is]
 
-exponentAdd :: [Int] -> [Int] -> [Int]
+exponentAdd :: Exponent -> Exponent -> Exponent
 exponentAdd a b = zipWith (+) a b
 
-exponentSub :: [Int] -> [Int] -> [Int]
+exponentSub :: Exponent -> Exponent -> Exponent
 exponentSub a b = zipWith (-) a b
 
-allGreaterEqual :: [Int] -> [Int] -> Bool
+allGreaterEqual :: Exponent -> Exponent -> Bool
 allGreaterEqual js ks = all id $ zipWith (>=) js ks
 
-decr :: Int -> [Int] -> Maybe [Int]
+decr :: Int -> Exponent -> Maybe Exponent
 decr _ [] = error "Can't decrement element of empty list"
 decr 0 (i : is) = if i > 0 then Just ((i - 1) : is) else Nothing
 decr n (i : is) = do
     js <- decr (n - 1) is
     return (i : js)
 
-incr :: Int -> [Int] -> [Int]
+incr :: Int -> Exponent -> Exponent
 incr _ [] = error "Can't increment element of empty list"
 incr 0 (i : is) = (i + 1) : is
 incr n (i : is) = i : incr (n - 1) is
@@ -162,7 +167,7 @@ incr n (i : is) = i : incr (n - 1) is
 -- Need to look at relationship between addr when d varies.
 -- Use to only init needed elements by walking through addresses,
 -- not exponents.
-monomialTimesHomogeneous :: (Show a, Num a) => [Int] -> Homogeneous a -> Homogeneous a
+monomialTimesHomogeneous :: (Show a, Num a) => Exponent -> Homogeneous a -> Homogeneous a
 monomialTimesHomogeneous _ Zero = Zero
 monomialTimesHomogeneous js (H d0 n c0) =
     let d1 = sum js + d0
@@ -178,7 +183,7 @@ maybeHead :: [a] -> Maybe a
 maybeHead [] = Nothing
 maybeHead (a : as) = Just a
 
-leadingTerm :: (Eq a, Num a, Show a) => Homogeneous a -> Maybe [Int]
+leadingTerm :: (Eq a, Num a, Show a) => Homogeneous a -> Maybe Exponent
 leadingTerm Zero = Nothing
 leadingTerm (H d n c) =
     maybeHead $ [ ks |
@@ -210,7 +215,7 @@ hscale _ Zero = Zero
 hscale a (H d0 n0 c0) = H d0 n0 $ fmap (a *) c0
 
 -- Sort of a SAXPY
-subtractMonomialTimes :: (Show a, Eq a, Num a) => Homogeneous a -> a -> [Int] -> Homogeneous a -> Homogeneous a
+subtractMonomialTimes :: (Show a, Eq a, Num a) => Homogeneous a -> a -> Exponent -> Homogeneous a -> Homogeneous a
 subtractMonomialTimes Zero _ _ Zero = Zero
 subtractMonomialTimes h _ _ Zero = h
 subtractMonomialTimes h0 a js h1 = h0 - hscale a (monomialTimesHomogeneous js h1)
