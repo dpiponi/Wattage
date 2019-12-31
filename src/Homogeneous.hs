@@ -27,6 +27,10 @@ fact n = product [1..n]
 pochhammer :: Integer -> Integer -> Integer
 pochhammer x n = product [x, x+1 .. x+n-1]
 
+-- Dimension of space of degree d polynomials in n variables
+hdim :: Int -> Int -> Int
+hdim n d = fromInteger (pochhammer (fromIntegral n) (fromIntegral d) `div` fact (fromIntegral d))
+
 type Exponent = [Int]
 
 addr :: Int -> Exponent -> Int
@@ -124,10 +128,6 @@ upgrade n1 (H d n0 c0) =
   let s0 = hdim n0 d -- pochhammer n0 d `div` fact d
       s1 = hdim n1 d -- pochhammer n1 d `div` fact d
   in H d n1 $ array' (0, s1 - 1) [(i, if i < s0 then c0 A.! i else 0) | i <- [0 .. s1 - 1]]
-
--- Dimension of space of degree d polynomials in n variables
-hdim :: Int -> Int -> Int
-hdim n d = fromInteger (pochhammer (fromIntegral n) (fromIntegral d) `div` fact (fromIntegral d))
 
 makeHomogeneous :: Int -> Int -> (Exponent -> a) -> Homogeneous a
 makeHomogeneous d n f =
