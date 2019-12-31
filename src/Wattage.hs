@@ -81,6 +81,7 @@ divide y x = r where r = map (/ x0)  (y ^- (0 : (r `convolve` xs)))
                      x0 : xs = x 
 
 (^/) (0:a) (0:b) = a ^/ b
+(^/) a [b] = map (/b) a
 (^/) a b = divide a b
 
 z :: Fractional a => Formal a

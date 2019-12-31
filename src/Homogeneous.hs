@@ -30,18 +30,23 @@ pochhammer x n = product [x, x+1 .. x+n-1]
 hdim' :: Int -> Int -> Int
 hdim' n d = fromInteger (pochhammer (fromIntegral n) (fromIntegral d) `div` fact (fromIntegral d))
 
-cache = A.array ((0,0),(99,99)) [((i,j),hdim' i j) | i <- [0..99], j <- [0..99]]
-hdim i j = cache A.! (i, j)
-       
+hdim_cache = A.array ((0,0),(99,99)) [((i,j),hdim' i j) | i <- [0..99], j <- [0..99]]
+hdim i j = hdim_cache A.! (i, j)
 
 type Exponent = [Int]
 
-addr :: Int -> Exponent -> Int
-addr _ [_] = 0
-addr deg exponents =
-  let m = fromIntegral (length exponents - 1)
-      r = fromIntegral (deg - head exponents)
-  in fromInteger $ pochhammer r m `div` fact m + fromIntegral (addr (fromInteger r) (tail exponents))
+-- addr :: Int -> Exponent -> Int
+-- addr _ [_] = 0
+-- addr deg exponents =
+--   let m = length exponents - 1
+--       r = deg - head exponents
+--   in hdim r m + addr r (tail exponents)
+
+addr' :: Int -> Int -> Exponent -> Int
+addr' _ _ [_] = 0
+addr' n deg (e : es) =
+  let r = deg - e
+  in hdim r (n - 1) + addr' (n - 1) r es
 
 data Homogeneous a = Zero | H { degree :: Int, num_vars :: Int, coefficients :: A.Array Int a }
 --   deriving Show
@@ -95,7 +100,7 @@ makeMonomial a ks =
     let d = sum ks
         n = length ks
         size = hdim n d
-        i = addr d ks
+        i = addr' n d ks
         m = H d n $ array' (0, size - 1) [(j, if j == i then a else 0) |
                                           j <- [0 .. size - 1]]
     in m
@@ -106,20 +111,6 @@ allOfDegree d n = do
   i <- [d, d-1 .. 0]
   js <- allOfDegree (d - i) (n-1)
   return (i : js)
-
-allSplits :: Int -> Int -> Exponent -> [(Exponent, Exponent)]
-allSplits _ _ [] = error "Can only split a non-empty exponent list"
-allSplits d0 d1 [n] =
-  if n == d0 + d1
-    then [([d0], [d1])]
-    else []
-allSplits d0 d1 (i : is) = do
-  let lower = max 0 (i - d1)
-  let upper = min i d0
-  j0 <- [upper, upper - 1 .. lower]
-  let j1 = i - j0
-  (ks, ls) <- allSplits (d0 - j0) (d1 - j1) is
-  return (j0 : ks, j1 : ls)
 
 x0 = make_var 0 1 :: Homogeneous Rational
 x1 = make_var 1 2 :: Homogeneous Rational
@@ -137,13 +128,39 @@ makeHomogeneous d n f =
     H d n $ array' (0, hdim n d -1) $ [(i, f is) |
                                        (i, is) <- enumerate (allOfDegree d n)]
 
+allSplits :: Int -> Int -> Exponent -> [(Exponent, Exponent)]
+allSplits _ _ [] = error "Can only split a non-empty exponent list"
+allSplits d0 d1 [n] =
+  if n == d0 + d1
+    then [([d0], [d1])]
+    else []
+allSplits d0 d1 (i : is) = do
+  let lower = max 0 (i - d1)
+  let upper = min i d0
+  j0 <- [upper, upper - 1 .. lower]
+  let j1 = i - j0
+  (ks, ls) <- allSplits (d0 - j0) (d1 - j1) is
+  return (j0 : ks, j1 : ls)
+
+withAllSplits :: (Exponent -> Exponent -> a) -> Int -> Int -> Exponent -> [a]
+withAllSplits f _ _ [] = error "Can only split a non-empty exponent list"
+withAllSplits f d0 d1 [n] =
+  if n == d0 + d1
+    then [f [d0] [d1]]
+    else []
+withAllSplits f d0 d1 (i : is) = do
+  let lower = max 0 (i - d1)
+  let upper = min i d0
+  j0 <- [upper, upper - 1 .. lower]
+  let j1 = i - j0
+  withAllSplits (\x y -> f (j0:x) (j1:y)) (d0 - j0) (d1 - j1) is
+
 htimes :: (Show a, Num a) => Homogeneous a -> Homogeneous a -> Homogeneous a
 htimes Zero _ = Zero
 htimes _ Zero = Zero
 htimes (H d0 n0 c0) (H d1 n1 c1) =
   makeHomogeneous (d0 + d1) n0 $ \is ->
-       sum [(c0 A.! addr d0 js)*(c1 A.! addr d1 ks) |
-            (js, ks) <- allSplits d0 d1 is]
+    sum $ withAllSplits (\js ks -> (c0 A.! addr' n0 d0 js)*(c1 A.! addr' n1 d1 ks)) d0 d1 is
 
 exponentAdd :: Exponent -> Exponent -> Exponent
 exponentAdd a b = zipWith (+) a b
@@ -164,10 +181,10 @@ decr n (i : is) = do
     js <- decr (n - 1) is
     return (i : js)
 
-incr :: Int -> Exponent -> Exponent
-incr _ [] = error "Can't increment element of empty list"
-incr 0 (i : is) = (i + 1) : is
-incr n (i : is) = i : incr (n - 1) is
+-- incr :: Int -> Exponent -> Exponent
+-- incr _ [] = error "Can't increment element of empty list"
+-- incr 0 (i : is) = (i + 1) : is
+-- incr n (i : is) = i : incr (n - 1) is
 
 -- Optimise.
 -- Need to look at relationship between addr when d varies.
@@ -178,12 +195,10 @@ monomialTimesHomogeneous _ Zero = Zero
 monomialTimesHomogeneous js (H d0 n c0) =
     let d1 = sum js + d0
         size1 = hdim n d1
-    in H d1 n $ array' (0, size1 - 1) $
-        [(addr d1 ks, a) |
-         ks <- allOfDegree d1 n,
-         let a = if allGreaterEqual ks js
-                   then c0 A.! addr d0 (exponentSub ks js)
-                   else 0]
+    in makeHomogeneous d1 n $ \ks ->
+         if allGreaterEqual ks js
+             then c0 A.! addr' n d0 (exponentSub ks js)
+             else 0
 
 maybeHead :: [a] -> Maybe a
 maybeHead [] = Nothing
@@ -192,10 +207,8 @@ maybeHead (a : as) = Just a
 leadingTerm :: (Eq a, Num a, Show a) => Homogeneous a -> Maybe Exponent
 leadingTerm Zero = Nothing
 leadingTerm (H d n c) =
-    maybeHead $ [ ks |
-                      (i, ks) <- enumerate (allOfDegree d n),
-                      c A.! i /= 0
-                    ]
+    maybeHead $ [ ks | (i, ks) <- enumerate (allOfDegree d n),
+                       c A.! i /= 0 ]
 
 hdivide :: (Eq a, Num a, Fractional a, Show a) => Homogeneous a -> Homogeneous a -> Homogeneous a -> Homogeneous a
 hdivide acc Zero _ = acc
@@ -207,7 +220,7 @@ hdivide acc h0@(H d0 n0 c0) h1@(H d1 n1 c1) =
                         Nothing -> error "Division by zero"
                         Just lt1 ->
                             if allGreaterEqual lt0 lt1
-                              then let ratio = c0 A.! addr d0 lt0 / c1 A.! addr d1 lt1
+                              then let ratio = c0 A.! addr' n0 d0 lt0 / c1 A.! addr' n1 d1 lt1
                                        js = exponentSub lt0 lt1
                                        acc' = acc + makeMonomial ratio js
                                    in hdivide acc' (subtractMonomialTimes h0 ratio js h1) h1
@@ -224,6 +237,7 @@ hscale a (H d0 n0 c0) = H d0 n0 $ fmap (a *) c0
 subtractMonomialTimes :: (Show a, Eq a, Num a) => Homogeneous a -> a -> Exponent -> Homogeneous a -> Homogeneous a
 subtractMonomialTimes Zero _ _ Zero = Zero
 subtractMonomialTimes h _ _ Zero = h
+-- Maybe do this subtraction directly XXX
 subtractMonomialTimes h0 a js h1 = h0 - hscale a (monomialTimesHomogeneous js h1)
 
 isZero :: (Eq a, Num a, Show a) => Homogeneous a -> Bool
@@ -240,8 +254,6 @@ instance (Eq a, Num a, Show a) => Eq (Homogeneous a) where
   _ == _ = False
 
 instance (Eq a, Show a, Num a) => Num (Homogeneous a) where
---   h0 + h1 | isZero h0 = h1
---   h0 + h1 | isZero h1 = h0
   h0 + Zero = h0
   Zero + h1 = h1
   h0@(H d0 n0 c0) + h1@(H d1 n1 c1) | d0 /= d1 = error $ "Can't add mixed degrees: " ++ show (h0, h1)
@@ -269,24 +281,24 @@ hderiv i Zero = Zero
 hderiv i (H 0 n c) = Zero
 hderiv i (H d n c) =
     let size = hdim n (d - 1)
-    in H (d - 1) n $ array' (0, size - 1) [(addr (d - 1) js, a) |
+    in H (d - 1) n $ array' (0, size - 1) [(addr' n (d - 1) js, a) |
                                            is <- allOfDegree d n,
                                            let p = is !! i,
                                            let mjs = decr i is,
                                            mjs /= Nothing,
                                            let Just js = mjs,
-                                           let a = fromIntegral p * (c A.! addr d is)]
+                                           let a = fromIntegral p * (c A.! addr' n d is)]
                                          
 hint :: (Num a, Eq a, Show a, Fractional a) => Int -> Homogeneous a -> Homogeneous a
 hint i Zero = Zero
 hint i h@(H d n c) | i >= n = hint i (upgrade (i+1) h)
 hint i h@(H d n c) = --trace (show (i, d, n, c)) $
     let size = hdim n (d + 1)
-    in H (d + 1) n $ array' (0, size - 1) [(addr (d + 1) is, a) |
+    in H (d + 1) n $ array' (0, size - 1) [(addr' n (d + 1) is, a) |
                                            is <- allOfDegree (d + 1) n,
                                            let mjs = decr i is,
                                            let a = case mjs of
                                                     Nothing -> 0
                                                     Just js -> 
                                                        let p = is !! i
-                                                       in  (c A.! addr d js) / fromIntegral p]
+                                                       in  (c A.! addr' n d js) / fromIntegral p]
