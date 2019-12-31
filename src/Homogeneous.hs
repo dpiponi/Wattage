@@ -17,7 +17,6 @@ import Data.Ratio
 import qualified Data.Map as Map
 import Debug.Trace
 import Wattage
-import Control.DeepSeq
 
 type Z = Integer
 
@@ -28,8 +27,12 @@ pochhammer :: Integer -> Integer -> Integer
 pochhammer x n = product [x, x+1 .. x+n-1]
 
 -- Dimension of space of degree d polynomials in n variables
-hdim :: Int -> Int -> Int
-hdim n d = fromInteger (pochhammer (fromIntegral n) (fromIntegral d) `div` fact (fromIntegral d))
+hdim' :: Int -> Int -> Int
+hdim' n d = fromInteger (pochhammer (fromIntegral n) (fromIntegral d) `div` fact (fromIntegral d))
+
+cache = A.array ((0,0),(99,99)) [((i,j),hdim' i j) | i <- [0..99], j <- [0..99]]
+hdim i j = cache A.! (i, j)
+       
 
 type Exponent = [Int]
 
