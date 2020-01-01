@@ -26,6 +26,8 @@ test xs = xs
 u0 = make_var 0 2 :: Homogeneous Rational
 u1 = make_var 1 2 :: Homogeneous Rational
 
+var i j = F [Zero, make_var i j]
+
 type MFormal a = Formal (Homogeneous a)
 
 pderiv :: (Num a, Eq a, Show a) => Int -> MFormal a -> MFormal a
@@ -33,6 +35,8 @@ pderiv i xs = mapf (hderiv i) (ftail xs)
 
 pint :: (Num a, Eq a, Show a, Fractional a) => Int -> MFormal a -> MFormal a
 pint i xs = 0 `prepend` mapf (hint i) xs
+
+ι = fromIntegral
 
 -- Actual hurwitz numbers
 -- https://arxiv.org/pdf/1605.07473.pdf
@@ -42,12 +46,32 @@ pint i xs = 0 `prepend` mapf (hint i) xs
 main :: IO ()
 main = do
   print "Hello"
-  let x = z0
-  let y = z1
-  let intY = pint 1
-  let h x y = intY (intY (exp (h x (y * exp x) - 2 * h x y + h x (y * exp (-x)))) / y)
---   print $ take 12 $ h x y
-  mapM_ print $ take 12 $ unF $ h x y
+
+--   let x = z0
+--   let y = z1
+--   let intY = pint 1
+--   let h x y = intY (intY (exp (h x (y * exp x) - 2 * h x y + h x (y * exp (-x)))) / y)
+--   mapM_ print $ take 12 $ unF $ h x y
+
+--   let q0 = var 0 3 :: MFormal Q
+--   let q1 = var 1 3
+--   let q2 = var 2 3
+--   print $ take 80 $ unF $ 1/((1+q2*q1)*(1-q0-2*q1+q0*q2))
+
+  let u = var 0 6 :: MFormal Q
+  let p i = var i 6 :: MFormal Q
+  let a nvars h = (1/2) * sum [
+                (ι i + ι j) * p i * p j * pderiv (i + j) h + ι i * ι j * p (i + j) * pderiv i (pderiv j h) |
+                n <- [1 .. nvars],
+                i <- [1 .. n - 1],
+                let j = n - i :: Int]
+  let h0 = exp (p 1) :: MFormal Q
+  let h1 = a 5 h0 :: MFormal Q
+  let h2 = a 5 h1 :: MFormal Q
+  let h3 = a 5 h2 :: MFormal Q
+  let h4 = a 5 h3 :: MFormal Q
+  mapM_ print $ take 10 $ unF $ (h4 / exp (p 1)) * fromIntegral (fact 4)
+
 --   print $ hderiv 1 $ u0 * u0 * u1 * u1 * u0 * u1
 --   print $ hint 1 $ u0 * u0 * u1 * u1
 --   print $ take 8 $ pderiv 0 $ z0+z0*z0*z1*z1

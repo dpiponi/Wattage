@@ -10,8 +10,10 @@ main = do
 
 tests = testGroup "Tests"
     [ testBasic,
+      testTranscendental,
       testAnnihilators,
       testHypergeometric,
+      testHomogeneous,
       testMultivariate ]
 
 -- Basic functionality
@@ -30,6 +32,37 @@ testFiniteConvolution10 = [1] `fconvolve` []  @?= []
 testFiniteConvolution11 = [1] `fconvolve` [1]  @?= [1]
 testFiniteConvolutionPoly1 = [1, 1] `fconvolve` [1, 1]  @?= [1, 2, 1]
 testFiniteConvolutionPoly2 = [1, 2] `fconvolve` [2, 4]  @?= [2, 8, 8]
+
+-- Transcendental functions
+testTranscendental = testGroup "Tests of transcendental functions"
+    [ testCase "exp . log" testExpLog,
+      testCase "log . exp" testLogExp,
+      testCase "exp is homomorphism" testExpIsHomomorphism,
+      testCase "log is homomorphism" testLogIsHomomorphism,
+      testCase "sqrt via log" testSqrtViaLog
+    ]
+
+testLogExp =
+    let u = - z^2 + z^3 - z^4 :: Formal Q
+    in ftake 5 (log (exp u)) @?= ftake 5 u
+
+testExpLog =
+    let u = 1 - z^2 + z^3 - z^4 :: Formal Q
+    in ftake 5 (exp (log u)) @?= ftake 5 u
+
+testExpIsHomomorphism =
+    let u = z + z^3 - z^4 :: Formal Q
+        v = z^2 - 2 * z^3 + 5 * z^4
+    in ftake 5 (exp (u + v)) @?= ftake 5 (exp u * exp v)
+
+testLogIsHomomorphism =
+    let u = 1 - z + z^3 - z^4 :: Formal Q
+        v = 1 + 3 * z - 2 * z^2 - 5 * z^4
+    in ftake 5 (log (u * v)) @?= ftake 5 (log u + log v)
+
+testSqrtViaLog =
+    let u = 1 - z + z^3 - z^4 :: Formal Q
+    in ftake 5 (sqrt u) @?= ftake 5 (exp ((1 / 2) * log u))
 
 -- Annihilators (this is work in progress and may be deleted)
 testAnnihilators = testGroup "Tests of annihilators"
@@ -88,6 +121,27 @@ testClausenFormula =
      s = 1/5
      u = hypergeometric [2*c-2*s-1,2*s,c-1/2] [2*c-1,c] z - (f21 (c-s-1/2) s c z)^2 :: Formal Q
  in ftake 10 u @?= take 10 (repeat 0)
+
+-- Homogeneous polynomial tests
+testHomogeneous = testGroup "Homogeneous polynomial tests"
+    [testCase "Integration 1" testHomogeneousIntegration1,
+     testCase "Integration 2" testHomogeneousIntegration2,
+     testCase "Integration 3" testHomogeneousIntegration3]
+
+testHomogeneousIntegration1 = 
+  let x0 = make_var 0 2
+      x1 = make_var 1 2
+  in hint 0 x1 @?= x0 * x1
+
+testHomogeneousIntegration2 = 
+  let x0 = make_var 0 1
+  in hint 0 1 @?= x0
+
+testHomogeneousIntegration3 = 
+  let x0 = make_var 0 1
+      x1 = make_var 1 1
+      x2 = make_var 2 1
+  in hint 2 (x0 * x0 * x1 * x1 * x2 * x2) @?= (1 / 3) * x0 * x0 * x1 * x1 * x2 * x2 * x2
 
 -- Multivariate tests
 testMultivariate = testGroup "Multivariate tests" 

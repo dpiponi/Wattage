@@ -35,12 +35,12 @@ hdim i j = hdim_cache A.! (i, j)
 
 type Exponent = [Int]
 
--- addr :: Int -> Exponent -> Int
--- addr _ [_] = 0
--- addr deg exponents =
---   let m = length exponents - 1
---       r = deg - head exponents
---   in hdim r m + addr r (tail exponents)
+addr :: Int -> Exponent -> Int
+addr _ [_] = 0
+addr deg exponents =
+  let m = length exponents - 1
+      r = deg - head exponents
+  in hdim r m + addr r (tail exponents)
 
 addr' :: Int -> Int -> Exponent -> Int
 addr' _ _ [_] = 0
