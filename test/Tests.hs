@@ -39,7 +39,11 @@ testTranscendental = testGroup "Tests of transcendental functions"
       testCase "log . exp" testLogExp,
       testCase "exp is homomorphism" testExpIsHomomorphism,
       testCase "log is homomorphism" testLogIsHomomorphism,
-      testCase "sqrt via log" testSqrtViaLog
+      testCase "sqrt via log" testSqrtViaLog,
+      testCase "sin . asin" testSinAsin,
+      testCase "asin . sin" testAsinSin,
+      testCase "tan . atan" testTanAtan,
+      testCase "atan . tan" testAtanTan
     ]
 
 testLogExp =
@@ -49,6 +53,22 @@ testLogExp =
 testExpLog =
     let u = 1 - z^2 + z^3 - z^4 :: Formal Q
     in ftake 5 (exp (log u)) @?= ftake 5 u
+
+testSinAsin =
+    let u = z + z^2 - z^3 :: Formal Q
+    in trunc 5 (sin (asin u)) @?= trunc 5 u
+
+testAsinSin =
+    let u = z + z^2 - z^3 :: Formal Q
+    in trunc 5 (asin (sin u)) @?= trunc 5 u
+
+testTanAtan =
+    let u = z + z^2 - z^3 :: Formal Q
+    in trunc 5 (tan (atan u)) @?= trunc 5 u
+
+testAtanTan =
+    let u = z + z^2 - z^3 :: Formal Q
+    in trunc 5 (atan (tan u)) @?= trunc 5 u
 
 testExpIsHomomorphism =
     let u = z + z^3 - z^4 :: Formal Q

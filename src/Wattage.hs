@@ -15,9 +15,11 @@ import Debug.Trace
 (*!) a b = a*b
 (!*) 0 _ = 0
 (!*) a b = a*b
+
 a ^+ [] = a
 [] ^+ b = b
 (a : as) ^+ (b : bs) = (a + b) : (as ^+ bs)
+
 a ^- [] = a
 [] ^- b = map negate b
 (a : as) ^- (b : bs) = (a - b) : (as ^- bs)
@@ -48,9 +50,6 @@ perrinAnn = [-1, -1, 0, 1]
 
 sample a = map (flip count a) [0..16]
 
--- convolve a b
--- a must not be finite, b may be
--- result is not finite
 [] `convolve` _ = []
 _ `convolve` [] = []
 (a : as) `convolve` bbs@(b : bs) = (a *! b) :
@@ -74,13 +73,21 @@ inverse (0:f:fs) = x where x     = 0 : map (recip f *) (0:1:g)
 inverse _ = error "inverse applicable only to non-empty lists starting with 0"
 
 -- reciprocal
-invert x = r where r = map (/ x0)  ([1] ^- (0 : (r `convolve` xs)))
+-- untested
+invert [] = error "Divide by zero"
+invert x = r where r = map (/ x0)  (1 : map negate (r `convolve` xs))
                    x0 : xs = x 
 
-divide y x = r where r = map (/ x0)  (y ^- (0 : (r `convolve` xs)))
-                     x0 : xs = x 
+-- Note:
+-- Seems like map ((1 / x0) *) would be faster than map (/ x0)
+-- But reciprocal doesn't always exist. Eg. for
+-- Homogeneous polynomials.
+divide _ [] = error "Divide by zero"
+divide [] _ = []
+divide (y : ys) x = r where r = map (/ x0)  (y : (ys ^- (r `convolve` xs)))
+                            x0 : xs = x 
 
-(^/) (0:a) (0:b) = a ^/ b
+(^/) (0 : a) (0 : b) = a ^/ b
 (^/) a [b] = map (/b) a
 (^/) a b = divide a b
 
@@ -101,7 +108,13 @@ integrate (F x) = F $ 0 : zipWith (/) x (map fromInteger [1..])
 
 square x = x `convolve` x
 
-newtype Formal a = F { unF :: [a] } deriving (Show, Eq)
+newtype Formal a = F { unF :: [a] } deriving (Show)
+
+-- Only good for finite sequences
+instance (Num a, Eq a) => Eq (Formal a) where
+    F x == F [] = all (== 0) x
+    F [] == F x = all (== 0) x
+    F (x : xs) == F (y : ys) = x == y && F xs == F ys
 
 mapf :: (a -> b) -> Formal a -> Formal b
 mapf f (F xs) = F $ map f xs
@@ -124,9 +137,9 @@ sqrt' x = 1:rs where rs = map (/2) (xs ^- (0:(rs `convolve` rs)))
 instance (Eq r, Fractional r) => Floating (Formal r) where
     sqrt (F (1:x)) = F $ sqrt' (1:x)
     sqrt _      = error "Can only find sqrt when leading term is 1"
---     exp x      = e where e = 1+integrate (e * d x) -- XXX throws away leading term
-    exp x = F $ exp' 0 (unF x) where
-        exp' n x = 1 : (map (/ n) (tail x `convolve` exp' (n + 1) x))
+    exp x      = e where e = 1+integrate (e * d x) -- XXX throws away leading term
+--     exp x = F $ exp' 0 (unF x) where
+--         exp' n x = 1 : (map (/ n) (tail x `convolve` exp' (n + 1) x))
     log x      = integrate (d x/x)
     sin x      = integrate ((cos x)*(d x))
     cos x      = [1] ... negate (integrate ((sin x)*(d x)))
@@ -221,6 +234,9 @@ ftail (F (_ : xs)) = F xs
 
 ftake :: Int -> Formal a -> [a]
 ftake i (F as) = take i as
+
+trunc :: Int -> Formal a -> Formal a
+trunc i (F as) = F (take i as)
 
 -- hypergeometric
 f01 :: (Num a, Fractional a, Eq a) => a -> Formal a -> Formal a
