@@ -132,7 +132,7 @@ instance (Eq r, Fractional r) => Fractional (Formal r) where
     F x/F y = F $ x ^/ y
     fromRational x    = F [fromRational x]
 
-sqrt' x = 1:rs where rs = map (/2) (xs ^- (0:(rs `convolve` rs)))
+sqrt' x = 1:rs where rs = map (/ 2) (xs ^- (0 : (rs `convolve` rs)))
                      _:xs = x
 instance (Eq r, Fractional r) => Floating (Formal r) where
     sqrt (F (1:x)) = F $ sqrt' (1:x)
@@ -140,16 +140,16 @@ instance (Eq r, Fractional r) => Floating (Formal r) where
     exp x      = e where e = 1+integrate (e * d x) -- XXX throws away leading term
 --     exp x = F $ exp' 0 (unF x) where
 --         exp' n x = 1 : (map (/ n) (tail x `convolve` exp' (n + 1) x))
-    log x      = integrate (d x/x)
-    sin x      = integrate ((cos x)*(d x))
-    cos x      = [1] ... negate (integrate ((sin x)*(d x)))
-    asin x      = integrate (d x/sqrt(1-x*x))
-    atan x      = integrate (d x/(1+x*x))
+    log x      = integrate (d x / x)
+    sin x      = integrate (cos x * d x)
+    cos x      = [1] ... negate (integrate (sin x * d x))
+    asin x      = integrate (d x / sqrt (1-x*x))
+    atan x      = integrate (d x / (1+x*x))
     acos x      = error "Unable to form power series for acos"
-    sinh x      = integrate ((cosh x)*(d x))
-    cosh x      = [1] ... integrate ((sinh x)*(d x))
-    asinh x      = integrate (d x/sqrt(1+x*x))
-    atanh x      = integrate (d x/(1-x*x))
+    sinh x      = integrate (cosh x * d x)
+    cosh x      = [1] ... integrate (sinh x * d x)
+    asinh x      = integrate (d x / sqrt (1+x*x))
+    atanh x      = integrate (d x / (1-x*x))
     acosh x      = error "Unable to form power series for acosh"
     pi       = error "There is no formal power series for pi"
 

@@ -47,30 +47,33 @@ main :: IO ()
 main = do
   print "Hello"
 
---   let x = z0
---   let y = z1
---   let intY = pint 1
---   let h x y = intY (intY (exp (h x (y * exp x) - 2 * h x y + h x (y * exp (-x)))) / y)
---   mapM_ print $ take 12 $ unF $ h x y
+--   print $ homogeneousFromList 3 6 [(1 % 2, [1, 0, 5]), (3, [2, 2, 2])]
+--   print $ z0 * z1 / z0
+
+  let x = z0
+  let y = z1
+  let intY = pint 1
+  let h x y = intY (intY (exp (h x (y * exp x) - 2 * h x y + h x (y * exp (-x)))) / y)
+  mapM_ print $ take 12 $ unF $ h x y
 
 --   let q0 = var 0 3 :: MFormal Q
 --   let q1 = var 1 3
 --   let q2 = var 2 3
 --   print $ take 80 $ unF $ 1/((1+q2*q1)*(1-q0-2*q1+q0*q2))
 
-  let u = var 0 6 :: MFormal Q
-  let p i = var i 6 :: MFormal Q
-  let a nvars h = (1/2) * sum [
-                (ι i + ι j) * p i * p j * pderiv (i + j) h + ι i * ι j * p (i + j) * pderiv i (pderiv j h) |
-                n <- [1 .. nvars],
-                i <- [1 .. n - 1],
-                let j = n - i :: Int]
-  let h0 = exp (p 1) :: MFormal Q
-  let h1 = a 5 h0 :: MFormal Q
-  let h2 = a 5 h1 :: MFormal Q
-  let h3 = a 5 h2 :: MFormal Q
-  let h4 = a 5 h3 :: MFormal Q
-  mapM_ print $ take 10 $ unF $ (h4 * exp (-p 1)) * fromIntegral (fact 4)
+--   let u = var 0 6 :: MFormal Q
+--   let p i = var i 6 :: MFormal Q
+--   let a nvars h = (1/2) * sum [
+--                 (ι i + ι j) * p i * p j * pderiv (i + j) h + ι i * ι j * p (i + j) * pderiv i (pderiv j h) |
+--                 n <- [1 .. nvars],
+--                 i <- [1 .. n - 1],
+--                 let j = n - i :: Int]
+--   let h0 = exp (p 1) :: MFormal Q
+--   let h1 = a 5 h0 :: MFormal Q
+--   let h2 = a 5 h1 :: MFormal Q
+--   let h3 = a 5 h2 :: MFormal Q
+--   let h4 = a 5 h3 :: MFormal Q
+--   mapM_ print $ take 10 $ unF $ (h4 * exp (-p 1)) * fromIntegral (fact 4)
 
 --   print $ hderiv 1 $ u0 * u0 * u1 * u1 * u0 * u1
 --   print $ hint 1 $ u0 * u0 * u1 * u1

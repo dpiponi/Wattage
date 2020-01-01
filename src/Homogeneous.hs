@@ -17,6 +17,8 @@ import Data.Ratio
 import qualified Data.Map as Map
 import Debug.Trace
 import Wattage
+import Control.Monad.ST
+import Data.Array.ST
 
 type Z = Integer
 
@@ -87,7 +89,7 @@ instance (Fractional a, Show a, Eq a) => Fractional (Homogeneous a) where
         let n = max n0 n1
             h0' = if n0 < n then upgrade n h0 else h0
             h1' = if n1 < n then upgrade n h1 else h1
-        in hdivide 0 h0' h1'
+        in hdivide h0' h1'
 
 listArray' = A.listArray
 array' = A.array
@@ -122,6 +124,14 @@ upgrade n1 (H d n0 c0) =
   let s0 = hdim n0 d -- pochhammer n0 d `div` fact d
       s1 = hdim n1 d -- pochhammer n1 d `div` fact d
   in H d n1 $ array' (0, s1 - 1) [(i, if i < s0 then c0 A.! i else 0) | i <- [0 .. s1 - 1]]
+
+-- Worried about this XXX. ScopedTypeVariables should mean I don't need 2nd Num a.
+homogeneousFromList :: Num a => Int -> Int -> [(a, Exponent)] -> Homogeneous a
+homogeneousFromList n d as =
+    H d n $ runST $ do
+        arr <- newArray (0, hdim n d - 1) 0 :: Num a => ST s (STArray s Int a)
+        forM_ as $ \(a, is) -> writeArray arr (addr' n d is) a
+        freeze arr
 
 makeHomogeneous :: Int -> Int -> (Exponent -> a) -> Homogeneous a
 makeHomogeneous d n f =
@@ -210,10 +220,11 @@ leadingTerm (H d n c) =
     maybeHead $ [ ks | (i, ks) <- enumerate (allOfDegree d n),
                        c A.! i /= 0 ]
 
-hdivide :: (Eq a, Num a, Fractional a, Show a) => Homogeneous a -> Homogeneous a -> Homogeneous a -> Homogeneous a
-hdivide acc Zero _ = acc
-hdivide _ _ Zero = error "Dvision by zero"
-hdivide acc h0@(H d0 n0 c0) h1@(H d1 n1 c1) =
+hdivide a@(H d0 n0 c0) b@(H d1 n1 c1) = homogeneousFromList (max n0 n1) (d0 - d1) (hdivide' [] a b)
+hdivide' :: (Eq a, Num a, Fractional a, Show a) => [(a, Exponent)] -> Homogeneous a -> Homogeneous a -> [(a, Exponent)]
+hdivide' acc Zero _ = acc
+hdivide' _ _ Zero = error "Dvision by zero"
+hdivide' acc h0@(H d0 n0 c0) h1@(H d1 n1 c1) =
     case leadingTerm h0 of
         Nothing -> acc
         Just lt0 -> case leadingTerm h1 of
@@ -222,8 +233,8 @@ hdivide acc h0@(H d0 n0 c0) h1@(H d1 n1 c1) =
                             if allGreaterEqual lt0 lt1
                               then let ratio = c0 A.! addr' n0 d0 lt0 / c1 A.! addr' n1 d1 lt1
                                        js = exponentSub lt0 lt1
-                                       acc' = acc + makeMonomial ratio js
-                                   in hdivide acc' (subtractMonomialTimes h0 ratio js h1) h1
+                                       acc' = (ratio, js) : acc
+                                   in hdivide' acc' (subtractMonomialTimes h0 ratio js h1) h1
                               else error ("Doesn't divide:" ++ show h0 ++ " / " ++ show h1)
                             
 
