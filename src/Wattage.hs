@@ -124,7 +124,9 @@ sqrt' x = 1:rs where rs = map (/2) (xs ^- (0:(rs `convolve` rs)))
 instance (Eq r, Fractional r) => Floating (Formal r) where
     sqrt (F (1:x)) = F $ sqrt' (1:x)
     sqrt _      = error "Can only find sqrt when leading term is 1"
-    exp x      = e where e = 1+integrate (e * d x) -- XXX throws away leading term
+--     exp x      = e where e = 1+integrate (e * d x) -- XXX throws away leading term
+    exp x = F $ exp' 0 (unF x) where
+        exp' n x = 1 : (map (/ n) (tail x `convolve` exp' (n + 1) x))
     log x      = integrate (d x/x)
     sin x      = integrate ((cos x)*(d x))
     cos x      = [1] ... negate (integrate ((sin x)*(d x)))

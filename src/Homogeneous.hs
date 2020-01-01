@@ -30,17 +30,17 @@ pochhammer x n = product [x, x+1 .. x+n-1]
 hdim' :: Int -> Int -> Int
 hdim' n d = fromInteger (pochhammer (fromIntegral n) (fromIntegral d) `div` fact (fromIntegral d))
 
-hdim_cache = A.array ((0,0),(99,99)) [((i,j),hdim' i j) | i <- [0..99], j <- [0..99]]
+hdim_cache = A.array ((0, 0), (99, 99)) [((i, j), hdim' i j) | i <- [0..99], j <- [0..99]]
 hdim i j = hdim_cache A.! (i, j)
 
 type Exponent = [Int]
 
-addr :: Int -> Exponent -> Int
-addr _ [_] = 0
-addr deg exponents =
-  let m = length exponents - 1
-      r = deg - head exponents
-  in hdim r m + addr r (tail exponents)
+-- addr :: Int -> Exponent -> Int
+-- addr _ [_] = 0
+-- addr deg exponents =
+--   let m = length exponents - 1
+--       r = deg - head exponents
+--   in hdim r m + addr r (tail exponents)
 
 addr' :: Int -> Int -> Exponent -> Int
 addr' _ _ [_] = 0
@@ -128,19 +128,19 @@ makeHomogeneous d n f =
     H d n $ array' (0, hdim n d -1) $ [(i, f is) |
                                        (i, is) <- enumerate (allOfDegree d n)]
 
-allSplits :: Int -> Int -> Exponent -> [(Exponent, Exponent)]
-allSplits _ _ [] = error "Can only split a non-empty exponent list"
-allSplits d0 d1 [n] =
-  if n == d0 + d1
-    then [([d0], [d1])]
-    else []
-allSplits d0 d1 (i : is) = do
-  let lower = max 0 (i - d1)
-  let upper = min i d0
-  j0 <- [upper, upper - 1 .. lower]
-  let j1 = i - j0
-  (ks, ls) <- allSplits (d0 - j0) (d1 - j1) is
-  return (j0 : ks, j1 : ls)
+-- allSplits :: Int -> Int -> Exponent -> [(Exponent, Exponent)]
+-- allSplits _ _ [] = error "Can only split a non-empty exponent list"
+-- allSplits d0 d1 [n] =
+--   if n == d0 + d1
+--     then [([d0], [d1])]
+--     else []
+-- allSplits d0 d1 (i : is) = do
+--   let lower = max 0 (i - d1)
+--   let upper = min i d0
+--   j0 <- [upper, upper - 1 .. lower]
+--   let j1 = i - j0
+--   (ks, ls) <- allSplits (d0 - j0) (d1 - j1) is
+--   return (j0 : ks, j1 : ls)
 
 withAllSplits :: (Exponent -> Exponent -> a) -> Int -> Int -> Exponent -> [a]
 withAllSplits f _ _ [] = error "Can only split a non-empty exponent list"
@@ -153,7 +153,7 @@ withAllSplits f d0 d1 (i : is) = do
   let upper = min i d0
   j0 <- [upper, upper - 1 .. lower]
   let j1 = i - j0
-  withAllSplits (\x y -> f (j0:x) (j1:y)) (d0 - j0) (d1 - j1) is
+  withAllSplits (\x y -> f (j0 : x) (j1 : y)) (d0 - j0) (d1 - j1) is
 
 htimes :: (Show a, Num a) => Homogeneous a -> Homogeneous a -> Homogeneous a
 htimes Zero _ = Zero

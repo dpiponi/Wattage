@@ -70,7 +70,7 @@ main = do
   let h2 = a 5 h1 :: MFormal Q
   let h3 = a 5 h2 :: MFormal Q
   let h4 = a 5 h3 :: MFormal Q
-  mapM_ print $ take 10 $ unF $ (h4 / exp (p 1)) * fromIntegral (fact 4)
+  mapM_ print $ take 10 $ unF $ (h4 * exp (-p 1)) * fromIntegral (fact 4)
 
 --   print $ hderiv 1 $ u0 * u0 * u1 * u1 * u0 * u1
 --   print $ hint 1 $ u0 * u0 * u1 * u1
