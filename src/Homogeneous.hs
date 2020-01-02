@@ -154,25 +154,30 @@ makeHomogeneous d n f =
 
 -- XXX Generate addresses along with exponents.
 -- I think it can be done.
-withAllSplits :: (Exponent -> Exponent -> a) -> Int -> Int -> Exponent -> [a]
-withAllSplits f _ _ [] = error "Can only split a non-empty exponent list"
-withAllSplits f d0 d1 [n] =
-  if n == d0 + d1
-    then [f [d0] [d1]]
+withAllSplits :: (Exponent -> Int -> Exponent -> Int -> a) -> Int -> Int -> Int -> Int -> Int -> Int -> Exponent -> [a]
+withAllSplits f _ _ _ _ _ _ [] = error "Can only split a non-empty exponent list"
+withAllSplits f addr0 addr1 n0 n1 d0 d1 [d] =
+  if d == d0 + d1
+    then [f [d0] addr0 [d1] addr1]
     else []
-withAllSplits f d0 d1 (i : is) = do
+withAllSplits f addr0 addr1 n0 n1 d0 d1 (i : is) = do
   let lower = max 0 (i - d1)
   let upper = min i d0
   j0 <- [upper, upper - 1 .. lower]
   let j1 = i - j0
-  withAllSplits (\x y -> f (j0 : x) (j1 : y)) (d0 - j0) (d1 - j1) is
+  let new_addr0 = addr0+hdim (d0-j0) (n0-1)
+  let new_addr1 = addr1+hdim (d1-j1) (n1-1)
+  withAllSplits (\x addrx y addry ->
+    let k0 = j0 : x
+        k1 = j1 : y
+    in f k0 new_addr0 k1 new_addr1) new_addr0 new_addr1 (n0-1) (n1-1) (d0 - j0) (d1 - j1) is
 
 htimes :: (Show a, Num a) => Homogeneous a -> Homogeneous a -> Homogeneous a
 htimes Zero _ = Zero
 htimes _ Zero = Zero
 htimes (H d0 n0 c0) (H d1 n1 c1) = 
   makeHomogeneous (d0 + d1) n0 $ \is ->
-    sum $ withAllSplits (\js ks -> (c0 A.! addr' n0 d0 js)*(c1 A.! addr' n1 d1 ks)) d0 d1 is
+    sum $ withAllSplits (\js addrj ks addrk -> (c0 A.! addrj)*(c1 A.! addrk)) 0 0 n0 n1 d0 d1 is
 
 exponentAdd :: Exponent -> Exponent -> Exponent
 exponentAdd a b = zipWith (+) a b

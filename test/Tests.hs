@@ -192,5 +192,5 @@ testHurwitzNumbers =
       intY = pint 1
       pint i xs = 0 `prepend` mapf (hint i) xs
       h x y = intY (intY (exp (h x (y * exp x) - 2 * h x y + h x (y * exp (-x)))) / y)
-      term6 = unF (h x y) !! 8
-  in term6 @?= (1 / 1440) * x0 * x0 * x0 * x0 * x0 * x0 * x1 * x1
+      term10 = unF (h x y) !! 10
+  in term10 @?= (1 / 80640) * x0 * x0 * x0 * x0 * x0 * x0 * x0 * x0 * x1 * x1 + (1 / 6) * x0 * x0 * x0 * x0 * x0 * x0 * x1 * x1 * x1 * x1
