@@ -133,9 +133,9 @@ homogeneousFromList n d as =
         forM_ as $ \(a, is) -> writeArray arr (addr' n d is) a
         freeze arr
 
-makeHomogeneous :: Int -> Int -> (Exponent -> a) -> Homogeneous a
+makeHomogeneous :: Int -> Int -> (Int -> Exponent -> a) -> Homogeneous a
 makeHomogeneous d n f =
-    H d n $ array' (0, hdim n d -1) $ [(i, f is) |
+    H d n $ array' (0, hdim n d -1) $ [(i, f i is) |
                                        (i, is) <- enumerate (allOfDegree d n)]
 
 -- allSplits :: Int -> Int -> Exponent -> [(Exponent, Exponent)]
@@ -193,7 +193,7 @@ htimes :: (Show a, Num a) => Homogeneous a -> Homogeneous a -> Homogeneous a
 htimes Zero _ = Zero
 htimes _ Zero = Zero
 htimes (H d0 n0 c0) (H d1 n1 c1) = 
-  makeHomogeneous (d0 + d1) n0 $ \is ->
+  makeHomogeneous (d0 + d1) n0 $ \_ is ->
     sum $ withAllSplits' 0 0 n0 n1 d0 d1 is $ \addrj addrk ->
         c0 A.! addrj * c1 A.! addrk
 
@@ -225,15 +225,15 @@ decr n (i : is) = do
 -- Need to look at relationship between addr when d varies.
 -- Use to only init needed elements by walking through addresses,
 -- not exponents.
-monomialTimesHomogeneous :: (Show a, Num a) => Exponent -> Homogeneous a -> Homogeneous a
-monomialTimesHomogeneous _ Zero = Zero
-monomialTimesHomogeneous js (H d0 n c0) =
-    let d1 = sum js + d0
-        size1 = hdim n d1
-    in makeHomogeneous d1 n $ \ks ->
-         if allGreaterEqual ks js
-             then c0 A.! addr' n d0 (exponentSub ks js)
-             else 0
+-- monomialTimesHomogeneous :: (Show a, Num a) => Exponent -> Homogeneous a -> Homogeneous a
+-- monomialTimesHomogeneous _ Zero = Zero
+-- monomialTimesHomogeneous js (H d0 n c0) =
+--     let d1 = sum js + d0
+--         size1 = hdim n d1
+--     in makeHomogeneous d1 n $ \_ ks ->
+--          if allGreaterEqual ks js
+--              then c0 A.! addr' n d0 (exponentSub ks js)
+--              else 0
 
 subtractMonomialTimes' :: (Show a, Num a) => Homogeneous a -> a -> Exponent -> Homogeneous a -> Homogeneous a
 subtractMonomialTimes' Zero _ _ Zero = Zero
@@ -241,19 +241,19 @@ subtractMonomialTimes' h _ _ Zero = h
 subtractMonomialTimes' (H d1 n1 c1) a js (H d0 n0 c0) =
 --     let --d1 = sum js + d0
 --         size1 = hdim n d1
-    makeHomogeneous d1 n1 $ \ks ->
+    makeHomogeneous d1 n1 $ \i ks ->
          if allGreaterEqual ks js
-             then c1 A.! addr' n1 d1 ks - a * c0 A.! addr' n0 d0 (exponentSub ks js)
-             else c1 A.! addr' n1 d1 ks
+             then c1 A.! i - a * c0 A.! addr' n0 d0 (exponentSub ks js)
+             else c1 A.! i
 
 maybeHead :: [a] -> Maybe a
 maybeHead [] = Nothing
 maybeHead (a : as) = Just a
 
-leadingTerm :: (Eq a, Num a, Show a) => Homogeneous a -> Maybe Exponent
+leadingTerm :: (Eq a, Num a, Show a) => Homogeneous a -> Maybe (Int, Exponent)
 leadingTerm Zero = Nothing
 leadingTerm (H d n c) =
-    maybeHead $ [ ks | (i, ks) <- enumerate (allOfDegree d n),
+    maybeHead $ [ (i, ks) | (i, ks) <- enumerate (allOfDegree d n),
                        c A.! i /= 0 ]
 
 hdivide a@(H d0 n0 c0) b@(H d1 n1 c1) = homogeneousFromList (max n0 n1) (d0 - d1) (hdivide' [] a b)
@@ -263,11 +263,11 @@ hdivide' _ _ Zero = error "Dvision by zero"
 hdivide' acc h0@(H d0 n0 c0) h1@(H d1 n1 c1) =
     case leadingTerm h0 of
         Nothing -> acc
-        Just lt0 -> case leadingTerm h1 of
+        Just (i0, lt0) -> case leadingTerm h1 of
                         Nothing -> error "Division by zero"
-                        Just lt1 ->
+                        Just (i1, lt1) ->
                             if allGreaterEqual lt0 lt1
-                              then let ratio = c0 A.! addr' n0 d0 lt0 / c1 A.! addr' n1 d1 lt1
+                              then let ratio = c0 A.! i0 / c1 A.! i1
                                        js = exponentSub lt0 lt1
                                        acc' = (ratio, js) : acc
                                    in hdivide' acc' (subtractMonomialTimes' h0 ratio js h1) h1
@@ -278,11 +278,11 @@ hscale _ Zero = Zero
 hscale a (H d0 n0 c0) = H d0 n0 $ fmap (a *) c0
 
 -- Sort of a SAXPY
-subtractMonomialTimes :: (Show a, Eq a, Num a) => Homogeneous a -> a -> Exponent -> Homogeneous a -> Homogeneous a
-subtractMonomialTimes Zero _ _ Zero = Zero
-subtractMonomialTimes h _ _ Zero = h
--- Maybe do this subtraction directly XXX
-subtractMonomialTimes h0 a js h1 = h0 - hscale a (monomialTimesHomogeneous js h1)
+-- subtractMonomialTimes :: (Show a, Eq a, Num a) => Homogeneous a -> a -> Exponent -> Homogeneous a -> Homogeneous a
+-- subtractMonomialTimes Zero _ _ Zero = Zero
+-- subtractMonomialTimes h _ _ Zero = h
+-- -- Maybe do this subtraction directly XXX
+-- subtractMonomialTimes h0 a js h1 = h0 - hscale a (monomialTimesHomogeneous js h1)
 
 isZero :: (Eq a, Num a, Show a) => Homogeneous a -> Bool
 isZero Zero = True
