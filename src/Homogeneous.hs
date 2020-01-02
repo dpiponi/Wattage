@@ -152,6 +152,8 @@ makeHomogeneous d n f =
 --   (ks, ls) <- allSplits (d0 - j0) (d1 - j1) is
 --   return (j0 : ks, j1 : ls)
 
+-- XXX Generate addresses along with exponents.
+-- I think it can be done.
 withAllSplits :: (Exponent -> Exponent -> a) -> Int -> Int -> Exponent -> [a]
 withAllSplits f _ _ [] = error "Can only split a non-empty exponent list"
 withAllSplits f d0 d1 [n] =
@@ -168,7 +170,7 @@ withAllSplits f d0 d1 (i : is) = do
 htimes :: (Show a, Num a) => Homogeneous a -> Homogeneous a -> Homogeneous a
 htimes Zero _ = Zero
 htimes _ Zero = Zero
-htimes (H d0 n0 c0) (H d1 n1 c1) =
+htimes (H d0 n0 c0) (H d1 n1 c1) = 
   makeHomogeneous (d0 + d1) n0 $ \is ->
     sum $ withAllSplits (\js ks -> (c0 A.! addr' n0 d0 js)*(c1 A.! addr' n1 d1 ks)) d0 d1 is
 

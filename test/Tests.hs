@@ -144,9 +144,22 @@ testClausenFormula =
 
 -- Homogeneous polynomial tests
 testHomogeneous = testGroup "Homogeneous polynomial tests"
-    [testCase "Integration 1" testHomogeneousIntegration1,
+    [testCase "Match zero" testMatchZero,
+     testCase "Integration 1" testHomogeneousIntegration1,
      testCase "Integration 2" testHomogeneousIntegration2,
      testCase "Integration 3" testHomogeneousIntegration3]
+
+testMatchZero = do
+    let x0 = make_var 0 2
+    let x1 = make_var 1 2
+    let checkZero 0 = True
+        checkZero _ = False
+    assertBool "checkZero Zero" $ checkZero Zero
+    assertBool "checkZero 0" $ checkZero 0
+    assertBool "not (checkZero 1)" $ not (checkZero 1)
+    assertBool "not (checkZero x0)" $ not (checkZero x0)
+    assertBool "checkZero (x0 - x0)" $ checkZero (x0 - x0)
+    assertBool "not (checkZero (x0 - x1))" $ not (checkZero (x0 - x1))
 
 testHomogeneousIntegration1 = 
   let x0 = make_var 0 2
