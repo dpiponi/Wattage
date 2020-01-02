@@ -152,33 +152,31 @@ makeHomogeneous d n f =
 --   (ks, ls) <- allSplits (d0 - j0) (d1 - j1) is
 --   return (j0 : ks, j1 : ls)
 
--- XXX Generate addresses along with exponents.
--- I think it can be done.
-withAllSplits :: (Exponent -> Int -> Exponent -> Int -> a) -> Int -> Int -> Int -> Int -> Int -> Int -> Exponent -> [a]
-withAllSplits f _ _ _ _ _ _ [] = error "Can only split a non-empty exponent list"
-withAllSplits f addr0 addr1 n0 n1 d0 d1 [d] =
-  if d == d0 + d1
-    then [f [d0] addr0 [d1] addr1]
-    else []
-withAllSplits f addr0 addr1 n0 n1 d0 d1 (i : is) = do
-  let lower = max 0 (i - d1)
-  let upper = min i d0
-  j0 <- [upper, upper - 1 .. lower]
-  let j1 = i - j0
-  let new_addr0 = addr0+hdim (d0-j0) (n0-1)
-  let new_addr1 = addr1+hdim (d1-j1) (n1-1)
-  withAllSplits (\x addrx y addry ->
-    let k0 = j0 : x
-        k1 = j1 : y
-    in f k0 new_addr0 k1 new_addr1) new_addr0 new_addr1 (n0-1) (n1-1) (d0 - j0) (d1 - j1) is
+-- withAllSplits :: (Exponent -> Int -> Exponent -> Int -> a) -> Int -> Int -> Int -> Int -> Int -> Int -> Exponent -> [a]
+-- withAllSplits f _ _ _ _ _ _ [] = error "Can only split a non-empty exponent list"
+-- withAllSplits f addr0 addr1 n0 n1 d0 d1 [d] =
+--   if d == d0 + d1
+--     then [f [d0] addr0 [d1] addr1]
+--     else []
+-- withAllSplits f addr0 addr1 n0 n1 d0 d1 (i : is) = do
+--   let lower = max 0 (i - d1)
+--   let upper = min i d0
+--   j0 <- [upper, upper - 1 .. lower]
+--   let j1 = i - j0
+--   let new_addr0 = addr0+hdim (d0-j0) (n0-1)
+--   let new_addr1 = addr1+hdim (d1-j1) (n1-1)
+--   withAllSplits (\x addrx y addry ->
+--     let k0 = j0 : x
+--         k1 = j1 : y
+--     in f k0 new_addr0 k1 new_addr1) new_addr0 new_addr1 (n0-1) (n1-1) (d0 - j0) (d1 - j1) is
 
-withAllSplits' :: (Int -> Int -> a) -> Int -> Int -> Int -> Int -> Int -> Int -> Exponent -> [a]
-withAllSplits' f _ _ _ _ _ _ [] = error "Can only split a non-empty exponent list"
-withAllSplits' f addr0 addr1 n0 n1 d0 d1 [d] =
+withAllSplits' :: Int -> Int -> Int -> Int -> Int -> Int -> Exponent -> (Int -> Int -> a) -> [a]
+withAllSplits' _ _ _ _ _ _ [] _ = error "Can only split a non-empty exponent list"
+withAllSplits' addr0 addr1 n0 n1 d0 d1 [d] f =
   if d == d0 + d1
     then [f addr0 addr1]
     else []
-withAllSplits' f addr0 addr1 n0 n1 d0 d1 (i : is) = do
+withAllSplits' addr0 addr1 n0 n1 d0 d1 (i : is) f = do
   let lower = max 0 (i - d1)
   let upper = min i d0
   j0 <- [upper, upper - 1 .. lower]
@@ -189,14 +187,15 @@ withAllSplits' f addr0 addr1 n0 n1 d0 d1 (i : is) = do
   let new_d1 = d1 - j1
   let new_addr0 = addr0+hdim (d0-j0) new_n0
   let new_addr1 = addr1+hdim (d1-j1) new_n1
-  withAllSplits' f new_addr0 new_addr1 new_n0 new_n1 new_d0 new_d1 is
+  withAllSplits' new_addr0 new_addr1 new_n0 new_n1 new_d0 new_d1 is f
 
 htimes :: (Show a, Num a) => Homogeneous a -> Homogeneous a -> Homogeneous a
 htimes Zero _ = Zero
 htimes _ Zero = Zero
 htimes (H d0 n0 c0) (H d1 n1 c1) = 
   makeHomogeneous (d0 + d1) n0 $ \is ->
-    sum $ withAllSplits' (\addrj addrk -> (c0 A.! addrj)*(c1 A.! addrk)) 0 0 n0 n1 d0 d1 is
+    sum $ withAllSplits' 0 0 n0 n1 d0 d1 is $ \addrj addrk ->
+        c0 A.! addrj * c1 A.! addrk
 
 exponentAdd :: Exponent -> Exponent -> Exponent
 exponentAdd a b = zipWith (+) a b
@@ -236,6 +235,17 @@ monomialTimesHomogeneous js (H d0 n c0) =
              then c0 A.! addr' n d0 (exponentSub ks js)
              else 0
 
+subtractMonomialTimes' :: (Show a, Num a) => Homogeneous a -> a -> Exponent -> Homogeneous a -> Homogeneous a
+subtractMonomialTimes' Zero _ _ Zero = Zero
+subtractMonomialTimes' h _ _ Zero = h
+subtractMonomialTimes' (H d1 n1 c1) a js (H d0 n0 c0) =
+--     let --d1 = sum js + d0
+--         size1 = hdim n d1
+    makeHomogeneous d1 n1 $ \ks ->
+         if allGreaterEqual ks js
+             then c1 A.! addr' n1 d1 ks - a * c0 A.! addr' n0 d0 (exponentSub ks js)
+             else c1 A.! addr' n1 d1 ks
+
 maybeHead :: [a] -> Maybe a
 maybeHead [] = Nothing
 maybeHead (a : as) = Just a
@@ -260,12 +270,9 @@ hdivide' acc h0@(H d0 n0 c0) h1@(H d1 n1 c1) =
                               then let ratio = c0 A.! addr' n0 d0 lt0 / c1 A.! addr' n1 d1 lt1
                                        js = exponentSub lt0 lt1
                                        acc' = (ratio, js) : acc
-                                   in hdivide' acc' (subtractMonomialTimes h0 ratio js h1) h1
+                                   in hdivide' acc' (subtractMonomialTimes' h0 ratio js h1) h1
                               else error ("Doesn't divide:" ++ show h0 ++ " / " ++ show h1)
                             
-
-
-
 hscale :: Num a => a -> Homogeneous a -> Homogeneous a
 hscale _ Zero = Zero
 hscale a (H d0 n0 c0) = H d0 n0 $ fmap (a *) c0
