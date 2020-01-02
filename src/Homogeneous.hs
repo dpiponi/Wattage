@@ -256,11 +256,12 @@ leadingTerm (H d n c) =
     maybeHead $ [ (i, ks) | (i, ks) <- enumerate (allOfDegree d n),
                        c A.! i /= 0 ]
 
+-- We only meed to get leading term og h1 once XXX
 hdivide a@(H d0 n0 c0) b@(H d1 n1 c1) = homogeneousFromList (max n0 n1) (d0 - d1) (hdivide' [] a b)
 hdivide' :: (Eq a, Num a, Fractional a, Show a) => [(a, Exponent)] -> Homogeneous a -> Homogeneous a -> [(a, Exponent)]
 hdivide' acc Zero _ = acc
 hdivide' _ _ Zero = error "Dvision by zero"
-hdivide' acc h0@(H d0 n0 c0) h1@(H d1 n1 c1) =
+hdivide' acc h0@(H d0 n0 c0) h1@(H d1 n1 c1) = trace (show (h0,h1))$
     case leadingTerm h0 of
         Nothing -> acc
         Just (i0, lt0) -> case leadingTerm h1 of
