@@ -84,8 +84,7 @@ invert x = r where r = map (/ x0)  (1 : map negate (r `convolve` xs))
 -- Homogeneous polynomials.
 divide _ [] = error "Divide by zero"
 divide [] _ = []
-divide (y : ys) x = r where r = map (/ x0)  (y : (ys ^- (r `convolve` xs)))
-                            x0 : xs = x 
+divide (y : ys) (x0 : xs) = r where r = map (/ x0)  (y : (ys ^- (r `convolve` xs)))
 
 (^/) (0 : a) (0 : b) = a ^/ b
 (^/) a [b] = map (/ b) a

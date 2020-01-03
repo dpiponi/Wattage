@@ -133,8 +133,12 @@ homogeneousFromList n d as =
         forM_ as $ \(a, is) -> writeArray arr (addr' n d is) a
         freeze arr
 
-makeHomogeneous :: Int -> Int -> (Int -> Exponent -> a) -> Homogeneous a
+makeHomogeneous :: Int -> Int -> (Exponent -> a) -> Homogeneous a
 makeHomogeneous d n f =
+    H d n $ A.listArray (0, hdim n d -1) $ [f is |
+                                            is <- allOfDegree d n]
+makeIndexHomogeneous :: Int -> Int -> (Int -> Exponent -> a) -> Homogeneous a
+makeIndexHomogeneous d n f =
     H d n $ array' (0, hdim n d -1) $ [(i, f i is) |
                                        (i, is) <- enumerate (allOfDegree d n)]
 
@@ -193,7 +197,7 @@ htimes :: (Show a, Num a) => Homogeneous a -> Homogeneous a -> Homogeneous a
 htimes Zero _ = Zero
 htimes _ Zero = Zero
 htimes (H d0 n0 c0) (H d1 n1 c1) = 
-  makeHomogeneous (d0 + d1) n0 $ \_ is ->
+  makeHomogeneous (d0 + d1) n0 $ \is ->
     sum $ withAllSplits' 0 0 n0 n1 d0 d1 is $ \addrj addrk ->
         c0 A.! addrj * c1 A.! addrk
 
@@ -230,7 +234,7 @@ decr n (i : is) = do
 -- monomialTimesHomogeneous js (H d0 n c0) =
 --     let d1 = sum js + d0
 --         size1 = hdim n d1
---     in makeHomogeneous d1 n $ \_ ks ->
+--     in makeIndexHomogeneous d1 n $ \_ ks ->
 --          if allGreaterEqual ks js
 --              then c0 A.! addr' n d0 (exponentSub ks js)
 --              else 0
@@ -241,7 +245,7 @@ subtractMonomialTimes' h _ _ Zero = h
 subtractMonomialTimes' (H d1 n1 c1) a js (H d0 n0 c0) =
 --     let --d1 = sum js + d0
 --         size1 = hdim n d1
-    makeHomogeneous d1 n1 $ \i ks ->
+    makeIndexHomogeneous d1 n1 $ \i ks ->
          if allGreaterEqual ks js
              then c1 A.! i - a * c0 A.! addr' n0 d0 (exponentSub ks js)
              else c1 A.! i
@@ -259,7 +263,7 @@ leadingTerm (H d n c) =
 onlyTerm :: (Eq a, Num a, Show a) => Homogeneous a -> Maybe (a, Exponent)
 onlyTerm Zero = Nothing
 onlyTerm (H d n c) =
-    case [ (a, ks) | (i, ks) <- enumerate (allOfDegree d n), let a = c A.! i, a /= 0 ] of
+    case [(a, ks) | (i, ks) <- enumerate (allOfDegree d n), let a = c A.! i, a /= 0 ] of
         [(a, ks)] -> Just (a, ks)
         otherwise -> Nothing
 
@@ -268,7 +272,7 @@ hdivide h0@(H d0 n0 c0) h1@(H d1 n1 c1) = --trace (show (h0, h1)) $
         Just (a, ks) -> simpleDivide h0 d1 a ks
         otherwise -> homogeneousFromList (max n0 n1) (d0 - d1) (hdivide' [] h0 h1)
 simpleDivide h0@(H d0 n0 c0) d1 a ks =
-    makeHomogeneous (d0 - d1) n0 $ \_ js ->
+    makeHomogeneous (d0 - d1) n0 $ \js ->
         c0 A.! addr' n0 d0 (exponentAdd js ks) / a
     
 -- XXX Need to not repeatedly restart when looking for leading term
