@@ -147,7 +147,8 @@ testHomogeneous = testGroup "Homogeneous polynomial tests"
     [testCase "Match zero" testMatchZero,
      testCase "Integration 1" testHomogeneousIntegration1,
      testCase "Integration 2" testHomogeneousIntegration2,
-     testCase "Integration 3" testHomogeneousIntegration3]
+     testCase "Integration 3" testHomogeneousIntegration3,
+     testCase "Implicit variables" testImplicitVariables]
 
 testMatchZero = do
     let x0 = make_var 0 2
@@ -160,6 +161,21 @@ testMatchZero = do
     assertBool "not (checkZero x0)" $ not (checkZero x0)
     assertBool "checkZero (x0 - x0)" $ checkZero (x0 - x0)
     assertBool "not (checkZero (x0 - x1))" $ not (checkZero (x0 - x1))
+
+testImplicitVariables = do
+    let x01 = make_var 0 1
+    let x02 = make_var 0 2
+    let x12 = make_var 1 2
+    assertEqual "x01 == x02" x01 x02
+    assertEqual "x01 - x01 == 0" (x01 -x02) 0
+    assertEqual "x01 * x02 == x02 * x02" (x01 * x02) (x02 * x02)
+    assertEqual "hderiv 0 x01 == hderiv 0 x02" (hderiv 0 x01) (hderiv 0 x02)
+    assertEqual "hderiv 1 x01 == hderiv 1 x02" (hderiv 1 x01) (hderiv 1 x02)
+    assertEqual "hderiv 2 x01 == hderiv 2 x02" (hderiv 2 x01) (hderiv 2 x02)
+    assertEqual "hderiv 0 (x01 * x01) == hderiv 0 (x02 * x02)" (hderiv 0 (x01 * x01)) (hderiv 0 (x02 * x02))
+    assertEqual "hderiv 1 (x01 * x01 * x12) == hderiv 1 (x02 * x02 * x12)"
+                 (hderiv 0 (x01 * x01 * x12))
+                 (hderiv 0 (x02 * x02 * x12))
 
 testHomogeneousIntegration1 = 
   let x0 = make_var 0 2

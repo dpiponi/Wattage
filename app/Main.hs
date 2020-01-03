@@ -63,19 +63,14 @@ main = do
 --   let q2 = var 2 3
 --   print $ take 80 $ unF $ 1/((1+q2*q1)*(1-q0-2*q1+q0*q2))
 
---   let u = var 0 6 :: MFormal Q
---   let p i = var i 6 :: MFormal Q
---   let a nvars h = (1/2) * sum [
---                 (ι i + ι j) * p i * p j * pderiv (i + j) h + ι i * ι j * p (i + j) * pderiv i (pderiv j h) |
---                 n <- [1 .. nvars],
---                 i <- [1 .. n - 1],
---                 let j = n - i :: Int]
---   let h0 = exp (p 1) :: MFormal Q
---   let h1 = a 5 h0 :: MFormal Q
---   let h2 = a 5 h1 :: MFormal Q
---   let h3 = a 5 h2 :: MFormal Q
---   let h4 = a 5 h3 :: MFormal Q
---   mapM_ print $ take 10 $ unF $ (h4 * exp (-p 1)) * fromIntegral (fact 4)
+--   let p i = var i (i + 1) :: MFormal Q
+--   let a = p 1 * p 1 + p 2 * p 1
+--   print $ take 10 $ unF $ a
+-- 
+--   let p i = var i 7 :: MFormal Q
+--   let a = p 1 * p 1 + p 2 * p 1
+--   print $ take 10 $ unF $ a
+
 
 --   print $ hderiv 1 $ u0 * u0 * u1 * u1 * u0 * u1
 --   print $ hint 1 $ u0 * u0 * u1 * u1

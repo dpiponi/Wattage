@@ -50,6 +50,13 @@ addr' n deg (e : es) =
   let r = deg - e
   in hdim r (n - 1) + addr' (n - 1) r es
 
+{-
+ - Δₓ hdim x d = hdim (x + 1) (d - 1)
+ - Δₓ addr' x d (e : es) =
+ -    Δₓ (hdim (x - e) (n - 1)) + Δₓ (addr' (n - 1) (x - e) es
+ - = hdim (x + 1 - e) (n - 2) + addr' (n - 1) (x - e) es
+ -}
+
 data Homogeneous a = Zero | H { degree :: Int, num_vars :: Int, coefficients :: A.Array Int a }
 --   deriving Show
 
@@ -118,12 +125,14 @@ x0 = make_var 0 1 :: Homogeneous Rational
 x1 = make_var 1 2 :: Homogeneous Rational
 x2 = make_var 2 3 :: Homogeneous Rational
 
+-- XXX Could be optimised maybe
 upgrade :: (Show a, Num a) => Int -> Homogeneous a -> Homogeneous a
 upgrade n Zero = Zero
 upgrade n1 (H d n0 c0) =
   let s0 = hdim n0 d -- pochhammer n0 d `div` fact d
       s1 = hdim n1 d -- pochhammer n1 d `div` fact d
-  in H d n1 $ array' (0, s1 - 1) [(i, if i < s0 then c0 A.! i else 0) | i <- [0 .. s1 - 1]]
+--   in H d n1 $ array' (0, s1 - 1) [(i, if i < s0 then c0 A.! i else 0) | i <- [0 .. s1 - 1]]
+  in homogeneousFromList n1 d $ [(c0 A.! addr' n0 d i, i) | i <- allOfDegree d n0]
 
 -- Worried about this XXX. ScopedTypeVariables should mean I don't need 2nd Num a.
 homogeneousFromList :: Num a => Int -> Int -> [(a, Exponent)] -> Homogeneous a
@@ -294,8 +303,9 @@ hdivide'' a lt1 acc h0@(H d0 n0 c0) h1@(H d1 n1 c1) =
                            in hdivide'' a lt1 acc' (subtractMonomialTimes' h0 ratio js h1) h1
                       else error ("Doesn't divide:" ++ show h0 ++ " / " ++ show h1)
                             
-hscale :: Num a => a -> Homogeneous a -> Homogeneous a
+hscale :: (Eq a, Num a) => a -> Homogeneous a -> Homogeneous a
 hscale _ Zero = Zero
+-- hscale 0 _ = Zero
 hscale a (H d0 n0 c0) = H d0 n0 $ fmap (a *) c0
 
 -- Sort of a SAXPY
@@ -321,8 +331,8 @@ instance (Eq a, Num a, Show a) => Eq (Homogeneous a) where
 instance (Eq a, Show a, Num a) => Num (Homogeneous a) where
   h0 + Zero = h0
   Zero + h1 = h1
-  h0@(H d0 n0 c0) + h1@(H d1 n1 c1) | d0 /= d1 = error $ "Can't add mixed degrees: " ++ show (h0, h1)
-  h0@(H d0 n0 c0) + h1@(H d1 n1 c1) =
+  h0@(H d0 _ _) + h1@(H d1 _ _) | d0 /= d1 = error $ "Can't add mixed degrees: " ++ show (h0, h1)
+  h0@(H _ n0 _) + h1@(H _ n1 _) =
     let n = max n0 n1
         H d0' n0' c0' = if n0 < n then upgrade n h0 else h0
         H d1' n1' c1' = if n1 < n then upgrade n h1 else h1
@@ -345,9 +355,10 @@ instance (Eq a, Show a, Num a) => Num (Homogeneous a) where
 hderiv :: (Num a, Eq a, Show a) => Int -> Homogeneous a -> Homogeneous a
 hderiv i Zero = Zero
 hderiv i (H 0 n c) = Zero
+hderiv i (H d n c) | i >= n = Zero
 hderiv i (H d n c) =
     let size = hdim n (d - 1)
-    in H (d - 1) n $ array' (0, size - 1) [(addr' n (d - 1) js, a) |
+    in homogeneousFromList n (d - 1) $ [(a, js) |
                                            is <- allOfDegree d n,
                                            let p = is !! i,
                                            let mjs = decr i is,
@@ -359,12 +370,9 @@ hint :: (Num a, Eq a, Show a, Fractional a) => Int -> Homogeneous a -> Homogeneo
 hint i Zero = Zero
 hint i h@(H d n c) | i >= n = hint i (upgrade (i+1) h)
 hint i h@(H d n c) = --trace (show (i, d, n, c)) $
-    let size = hdim n (d + 1)
-    in H (d + 1) n $ array' (0, size - 1) [(addr' n (d + 1) is, a) |
+     homogeneousFromList n (d + 1) $ [(a, is) |
                                            is <- allOfDegree (d + 1) n,
                                            let mjs = decr i is,
-                                           let a = case mjs of
-                                                    Nothing -> 0
-                                                    Just js -> 
-                                                       let p = is !! i
-                                                       in  (c A.! addr' n d js) / fromIntegral p]
+                                           mjs /= Nothing,
+                                           let Just js = mjs,
+                                           let a = (c A.! addr' n d js) / fromIntegral (is !! i)]
