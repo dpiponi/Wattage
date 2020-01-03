@@ -263,7 +263,7 @@ onlyTerm (H d n c) =
         [(a, ks)] -> Just (a, ks)
         otherwise -> Nothing
 
-hdivide h0@(H d0 n0 c0) h1@(H d1 n1 c1) = trace (show (h0, h1)) $
+hdivide h0@(H d0 n0 c0) h1@(H d1 n1 c1) = --trace (show (h0, h1)) $
     case onlyTerm h1 of
         Just (a, ks) -> simpleDivide h0 d1 a ks
         otherwise -> homogeneousFromList (max n0 n1) (d0 - d1) (hdivide' [] h0 h1)
