@@ -50,6 +50,8 @@ main = do
 --   print $ homogeneousFromList 3 6 [(1 % 2, [1, 0, 5]), (3, [2, 2, 2])]
 --   print $ z0 * z1 / z0
 
+  -- https://people.mpim-bonn.mpg.de/zagier/files/tex/ClassicalHurwitz/HurwitzRevised.pdf
+  -- (10) p.3
   let x = z0
   let y = z1
   let intY = pint 1

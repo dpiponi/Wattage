@@ -256,23 +256,39 @@ leadingTerm (H d n c) =
     maybeHead $ [ (i, ks) | (i, ks) <- enumerate (allOfDegree d n),
                        c A.! i /= 0 ]
 
--- We only meed to get leading term og h1 once XXX
-hdivide a@(H d0 n0 c0) b@(H d1 n1 c1) = homogeneousFromList (max n0 n1) (d0 - d1) (hdivide' [] a b)
+onlyTerm :: (Eq a, Num a, Show a) => Homogeneous a -> Maybe (a, Exponent)
+onlyTerm Zero = Nothing
+onlyTerm (H d n c) =
+    case [ (a, ks) | (i, ks) <- enumerate (allOfDegree d n), let a = c A.! i, a /= 0 ] of
+        [(a, ks)] -> Just (a, ks)
+        otherwise -> Nothing
+
+hdivide h0@(H d0 n0 c0) h1@(H d1 n1 c1) = trace (show (h0, h1)) $
+    case onlyTerm h1 of
+        Just (a, ks) -> simpleDivide h0 d1 a ks
+        otherwise -> homogeneousFromList (max n0 n1) (d0 - d1) (hdivide' [] h0 h1)
+simpleDivide h0@(H d0 n0 c0) d1 a ks =
+    makeHomogeneous (d0 - d1) n0 $ \_ js ->
+        c0 A.! addr' n0 d0 (exponentAdd js ks) / a
+    
+-- XXX Need to not repeatedly restart when looking for leading term
 hdivide' :: (Eq a, Num a, Fractional a, Show a) => [(a, Exponent)] -> Homogeneous a -> Homogeneous a -> [(a, Exponent)]
 hdivide' acc Zero _ = acc
 hdivide' _ _ Zero = error "Dvision by zero"
-hdivide' acc h0@(H d0 n0 c0) h1@(H d1 n1 c1) = trace (show (h0,h1))$
-    case leadingTerm h0 of
-        Nothing -> acc
-        Just (i0, lt0) -> case leadingTerm h1 of
-                        Nothing -> error "Division by zero"
-                        Just (i1, lt1) ->
-                            if allGreaterEqual lt0 lt1
-                              then let ratio = c0 A.! i0 / c1 A.! i1
-                                       js = exponentSub lt0 lt1
-                                       acc' = (ratio, js) : acc
-                                   in hdivide' acc' (subtractMonomialTimes' h0 ratio js h1) h1
-                              else error ("Doesn't divide:" ++ show h0 ++ " / " ++ show h1)
+hdivide' acc h0 h1@(H d1 n1 c1) = 
+    case leadingTerm h1 of
+        Nothing -> error "Division by zero"
+        Just (i1, lt1) -> hdivide'' (c1 A.! i1) lt1 acc h0 h1
+hdivide'' a lt1 acc h0@(H d0 n0 c0) h1@(H d1 n1 c1) =
+            case leadingTerm h0 of
+                Nothing -> acc
+                Just (i0, lt0) ->
+                    if allGreaterEqual lt0 lt1
+                      then let ratio = c0 A.! i0 / a
+                               js = exponentSub lt0 lt1
+                               acc' = (ratio, js) : acc
+                           in hdivide'' a lt1 acc' (subtractMonomialTimes' h0 ratio js h1) h1
+                      else error ("Doesn't divide:" ++ show h0 ++ " / " ++ show h1)
                             
 hscale :: Num a => a -> Homogeneous a -> Homogeneous a
 hscale _ Zero = Zero
@@ -321,6 +337,7 @@ instance (Eq a, Show a, Num a) => Num (Homogeneous a) where
   signum _ = error "No signum for Homogeneous"
   abs _ = error "No abs for Homogeneous"
 
+-- Should gather, not scatter surely XXX
 hderiv :: (Num a, Eq a, Show a) => Int -> Homogeneous a -> Homogeneous a
 hderiv i Zero = Zero
 hderiv i (H 0 n c) = Zero

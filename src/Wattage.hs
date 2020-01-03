@@ -88,7 +88,7 @@ divide (y : ys) x = r where r = map (/ x0)  (y : (ys ^- (r `convolve` xs)))
                             x0 : xs = x 
 
 (^/) (0 : a) (0 : b) = a ^/ b
-(^/) a [b] = map (/b) a
+(^/) a [b] = map (/ b) a
 (^/) a b = divide a b
 
 z :: Fractional a => Formal a
@@ -128,18 +128,16 @@ instance (Eq r, Num r) => Num (Formal r) where
     signum _ = error "signum only applicable to non-empty lists"
     abs _   = error "Can't form abs of a power series"
 
-instance (Eq r, Fractional r) => Fractional (Formal r) where
+instance (Show r, Eq r, Fractional r) => Fractional (Formal r) where
     F x/F y = F $ x ^/ y
     fromRational x    = F [fromRational x]
 
 sqrt' x = 1:rs where rs = map (/ 2) (xs ^- (0 : (rs `convolve` rs)))
                      _:xs = x
-instance (Eq r, Fractional r) => Floating (Formal r) where
+instance (Show r, Eq r, Fractional r) => Floating (Formal r) where
     sqrt (F (1:x)) = F $ sqrt' (1:x)
     sqrt _      = error "Can only find sqrt when leading term is 1"
     exp x      = e where e = 1+integrate (e * d x) -- XXX throws away leading term
---     exp x = F $ exp' 0 (unF x) where
---         exp' n x = 1 : (map (/ n) (tail x `convolve` exp' (n + 1) x))
     log x      = integrate (d x / x)
     sin x      = integrate (cos x * d x)
     cos x      = [1] ... negate (integrate (sin x * d x))
@@ -354,6 +352,6 @@ instance Fractional FreeNum where
 factorial 0 = 1
 factorial n = n*factorial (n-1)
 
-besselJ :: (Eq x, Fractional x) => Integer -> Formal x -> Formal x
+besselJ :: (Show x, Eq x, Fractional x) => Integer -> Formal x -> Formal x
 besselJ n x = let scale = 1/fromRational (fromIntegral (factorial n))
               in mapf (scale *) $ f01 (fromInteger n + 1) (-x^2 / 4) * (x / 2)^n
