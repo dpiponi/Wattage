@@ -49,6 +49,7 @@ pScaleInt i xs = mapf (scaleInt i) xs
 main :: IO ()
 main = do
   print "Hello"
+  print $ ftake 5 $ itlog (itexp (z ^ 2 + z^3))
 
 --   print $ homogeneousFromList 3 6 [(1 % 2, [1, 0, 5]), (3, [2, 2, 2])]
 --   print $ z0 * z1 / z0

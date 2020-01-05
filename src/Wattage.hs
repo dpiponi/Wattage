@@ -62,6 +62,7 @@ aas@(a : as) `lconvolve` ~(b : bs) = (a !* b) :
 
 as `ann` bs = drop (length as - 1) (reverse as `lconvolve` bs)
 
+compose [] _ = []
 compose (f : fs) g@(0 : gs) = f : (gs `convolve` (compose fs g))
 compose _ _ = error "compose requires two non-empty lists, the second starting with 0"
 
@@ -237,6 +238,9 @@ ftail (F (_ : xs)) = F xs
 
 ftake :: Int -> Formal a -> [a]
 ftake i (F as) = take i as
+
+truncate :: Int -> Formal a -> Formal a
+truncate i (F as) = F $ take i as
 
 trunc :: Int -> Formal a -> Formal a
 trunc i (F as) = F (take i as)

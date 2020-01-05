@@ -1,3 +1,4 @@
+import Prelude hiding (truncate)
 import Poly
 import Wattage as W
 import Homogeneous as H hiding (test)
@@ -14,7 +15,8 @@ tests = testGroup "Tests"
       testAnnihilators,
       testHypergeometric,
       testHomogeneous,
-      testMultivariate ]
+      testMultivariate,
+      testItlog ]
 
 -- Basic functionality
 testBasic = testGroup "Tests of basic functionality"
@@ -46,11 +48,15 @@ testTranscendental = testGroup "Tests of transcendental functions"
       testCase "atan . tan" testAtanTan,
       testCase "sin `compose` sin " testComposeSin,
       testCase "asin `compose` exp " testComposeAsinExp,
-      testCase "inverse sin == asin" testInverseSin
+      testCase "inverse sin == asin" testInverseSin,
+      testCase "inverse (exp x-1) == log (1+x)" testInverseExp
     ]
 
 testInverseSin =
     ftake 5 (inverse (sin z)) @?= ftake 5 (asin z)
+
+testInverseExp =
+    ftake 5 (inverse (exp z - 1)) @?= (ftake 5 (log (1 + z)) :: [Rational])
 
 testComposeSin =
     take 20 ((unF (sin (sin z)))) @?= (take 20 ((unF (sin z) `compose` unF (sin z)) :: [Rational]))
@@ -222,3 +228,20 @@ testHurwitzNumbers =
       h x y = intY (intY (exp (h x (y * exp x) - 2 * h x y + h x (y * exp (-x)))) / y)
       term10 = unF (h x y) !! 10
   in term10 @?= (1 / 80640) * x0 * x0 * x0 * x0 * x0 * x0 * x0 * x0 * x1 * x1 + (1 / 6) * x0 * x0 * x0 * x0 * x0 * x0 * x1 * x1 * x1 * x1
+
+-- iterative logarithm
+testItlog = testGroup "Iterative logarithm"
+    [ testCase "itlog . itexp" testItlogItExp ,
+      testCase "itexp . itlog" testItExpItLog,
+      testCase "iterative power" testItPower]
+
+testItlogItExp =
+    truncate 5 (itlog (itexp (z^2 + z^3))) @?= z^2 + z^3
+
+testItExpItLog =
+    truncate 5 (itexp (itlog (z + z^2 + z^3))) @?= z + z^2 + z^3
+
+testItPower =
+    let f = sin (tan z)
+        g = itexp (itlog f * 5)
+    in truncate 5 g @?= truncate 5 (f `fcompose` f `fcompose` f `fcompose` f `fcompose` f)
