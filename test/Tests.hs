@@ -53,24 +53,24 @@ testTranscendental = testGroup "Tests of transcendental functions"
     ]
 
 testInverseSin =
-    ftake 5 (inverse (sin z)) @?= ftake 5 (asin z)
+    truncate 5 (inverse (sin z)) @?= truncate 5 (asin z)
 
 testInverseExp =
-    ftake 5 (inverse (exp z - 1)) @?= (ftake 5 (log (1 + z)) :: [Rational])
+    truncate 5 (inverse (exp z - 1)) @?= (truncate 5 (log (1 + z)) :: Formal Q)
 
 testComposeSin =
-    take 20 ((unF (sin (sin z)))) @?= (take 20 ((unF (sin z) `compose` unF (sin z)) :: [Rational]))
+    truncate 20 (((sin (sin z)))) @?= (truncate 20 (((sin z) `fcompose` (sin z)) :: Formal Q))
 
 testComposeAsinExp =
-    take 20 ((unF (asin (exp z-1)))) @?= (take 20 ((unF (asin z) `compose` unF (exp z-1)) :: [Rational]))
+    truncate 20 (((asin (exp z-1)))) @?= (truncate 20 (((asin z) `fcompose` (exp z-1)) :: Formal Q))
 
 testLogExp =
     let u = - z^2 + z^3 - z^4 :: Formal Q
-    in ftake 5 (log (exp u)) @?= ftake 5 u
+    in truncate 5 (log (exp u)) @?= truncate 5 u
 
 testExpLog =
     let u = 1 - z^2 + z^3 - z^4 :: Formal Q
-    in ftake 5 (exp (log u)) @?= ftake 5 u
+    in truncate 5 (exp (log u)) @?= truncate 5 u
 
 testSinAsin =
     let u = z + z^2 - z^3 :: Formal Q
@@ -91,16 +91,16 @@ testAtanTan =
 testExpIsHomomorphism =
     let u = z + z^3 - z^4 :: Formal Q
         v = z^2 - 2 * z^3 + 5 * z^4
-    in ftake 5 (exp (u + v)) @?= ftake 5 (exp u * exp v)
+    in truncate 5 (exp (u + v)) @?= truncate 5 (exp u * exp v)
 
 testLogIsHomomorphism =
     let u = 1 - z + z^3 - z^4 :: Formal Q
         v = 1 + 3 * z - 2 * z^2 - 5 * z^4
-    in ftake 5 (log (u * v)) @?= ftake 5 (log u + log v)
+    in truncate 5 (log (u * v)) @?= truncate 5 (log u + log v)
 
 testSqrtViaLog =
     let u = 1 - z + z^3 - z^4 :: Formal Q
-    in ftake 5 (sqrt u) @?= ftake 5 (exp ((1 / 2) * log u))
+    in truncate 5 (sqrt u) @?= truncate 5 (exp ((1 / 2) * log u))
 
 -- Annihilators (this is work in progress and may be deleted)
 testAnnihilators = testGroup "Tests of annihilators"
@@ -126,14 +126,14 @@ testHypergeometric = testGroup "Hypergeometric tests"
       testCase "Identity 3" testIdentity3]
 
 testDilogarithmHypergeometric =
-    ftake 10 (dilog z :: Formal Q) @?= ftake 10 (z*hypergeometric [1, 1, 1] [2, 2] z)
+    truncate 10 (dilog z :: Formal Q) @?= truncate 10 (z*hypergeometric [1, 1, 1] [2, 2] z)
 
 testRationalHypergeometric =
     let a = 1/3 :: Q
-    in ftake 10 (hypergeometric [a] [] z) @?= ftake 10 (exp (log (1-z)*(-fromRational a)))
+    in truncate 10 (hypergeometric [a] [] z) @?= truncate 10 (exp (log (1-z)*(-fromRational a)))
 
 testExpHypergeometric =
-    ftake 10 (hypergeometric [] [] z) @?= ftake 10 (exp z)
+    truncate 10 (hypergeometric [] [] z) @?= truncate 10 (exp z)
 
 testIdentity3 =
     let a = 1/3
@@ -142,14 +142,14 @@ testIdentity3 =
         term1 = hypergeometric [] [a+1/2] (z^2/16)
         term2 = mapf ((1-(2*a)/b)/(2*(2*a+1)) *) (z*hypergeometric [] [a+3/2] (z^2/16)) :: Formal Q
         rhs = term1 - term2
-    in ftake 10 lhs @?= ftake 10 rhs
+    in truncate 10 lhs @?= truncate 10 rhs
 
 -- http://mathworld.wolfram.com/KummersRelation.html
 testKummerRelation =
   let a = 1/3
       b = 1/5
       u = f21 (2*a) (2*b) (a+b+1/2) z - f21 a b (a+b+1/2) (4*z*(1-z)) :: Formal Q
-  in ftake 10 u @?= take 10 (repeat 0)
+  in truncate 10 u @?= 0
 
 -- https://en.wikipedia.org/wiki/Clausen%27s_formula
 testClausenFormula =
@@ -158,7 +158,7 @@ testClausenFormula =
      c = 1/4
      s = 1/5
      u = hypergeometric [2*c-2*s-1,2*s,c-1/2] [2*c-1,c] z - (f21 (c-s-1/2) s c z)^2 :: Formal Q
- in ftake 10 u @?= take 10 (repeat 0)
+ in truncate 10 u @?= 0
 
 -- Homogeneous polynomial tests
 testHomogeneous = testGroup "Homogeneous polynomial tests"
@@ -234,7 +234,11 @@ testItlog = testGroup "Iterative logarithm"
     [ testCase "itlog . itexp" testItlogItExp,
       testCase "itexp . itlog" testItExpItLog,
       testCase "iterative power" testItPower,
-      testCase "fractional iterative power" testFractionalItPower]
+      testCase "fractional iterative power" testFractionalItPower,
+      testCase "iterative asin" testItAsin]
+
+testItAsin =
+    truncate 5 (itexp (- itlog (sin z))) @?= truncate 5 (asin z)
 
 testItlogItExp =
     truncate 5 (itlog (itexp (z^2 + z^3))) @?= z^2 + z^3
