@@ -231,9 +231,10 @@ testHurwitzNumbers =
 
 -- iterative logarithm
 testItlog = testGroup "Iterative logarithm"
-    [ testCase "itlog . itexp" testItlogItExp ,
+    [ testCase "itlog . itexp" testItlogItExp,
       testCase "itexp . itlog" testItExpItLog,
-      testCase "iterative power" testItPower]
+      testCase "iterative power" testItPower,
+      testCase "fractional iterative power" testFractionalItPower]
 
 testItlogItExp =
     truncate 5 (itlog (itexp (z^2 + z^3))) @?= z^2 + z^3
@@ -245,3 +246,8 @@ testItPower =
     let f = sin (tan z)
         g = itexp (itlog f * 5)
     in truncate 5 g @?= truncate 5 (f `fcompose` f `fcompose` f `fcompose` f `fcompose` f)
+
+testFractionalItPower =
+    let f = sin (tan z)
+        g = itexp (itlog f / 5)
+    in truncate 5 f @?= truncate 5 (g `fcompose` g `fcompose` g `fcompose` g `fcompose` g)
