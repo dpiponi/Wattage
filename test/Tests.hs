@@ -1,6 +1,6 @@
 import Poly
-import Wattage
-import Homogeneous hiding (test)
+import Wattage as W
+import Homogeneous as H hiding (test)
 import Test.Tasty
 import Test.Tasty.HUnit
 import System.Environment
@@ -43,8 +43,20 @@ testTranscendental = testGroup "Tests of transcendental functions"
       testCase "sin . asin" testSinAsin,
       testCase "asin . sin" testAsinSin,
       testCase "tan . atan" testTanAtan,
-      testCase "atan . tan" testAtanTan
+      testCase "atan . tan" testAtanTan,
+      testCase "sin `compose` sin " testComposeSin,
+      testCase "asin `compose` exp " testComposeAsinExp,
+      testCase "inverse sin == asin" testInverseSin
     ]
+
+testInverseSin =
+    ftake 5 (inverse (sin z)) @?= ftake 5 (asin z)
+
+testComposeSin =
+    take 20 ((unF (sin (sin z)))) @?= (take 20 ((unF (sin z) `compose` unF (sin z)) :: [Rational]))
+
+testComposeAsinExp =
+    take 20 ((unF (asin (exp z-1)))) @?= (take 20 ((unF (asin z) `compose` unF (exp z-1)) :: [Rational]))
 
 testLogExp =
     let u = - z^2 + z^3 - z^4 :: Formal Q
@@ -199,8 +211,8 @@ testMultivariate = testGroup "Multivariate tests"
 type MFormal a = Formal (Homogeneous a)
 
 testHurwitzNumbers =
-  let x0 = make_var 0 2
-      x1 = make_var 1 2
+  let x0 = H.var 0
+      x1 = H.var 1
       z0 = F $ Zero : x0 : repeat Zero :: MFormal Rational
       z1 = F $ Zero : x1 : repeat Zero :: MFormal Rational
       x = z0

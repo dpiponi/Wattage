@@ -36,6 +36,9 @@ pderiv i xs = mapf (hderiv i) (ftail xs)
 pint :: (Num a, Eq a, Show a, Fractional a) => Int -> MFormal a -> MFormal a
 pint i xs = 0 `prepend` mapf (hint i) xs
 
+pScaleInt :: (Num a, Eq a, Show a, Fractional a) => Int -> MFormal a -> MFormal a
+pScaleInt i xs = mapf (scaleInt i) xs
+
 ι = fromIntegral
 
 -- Actual hurwitz numbers
@@ -55,8 +58,47 @@ main = do
   let x = z0
   let y = z1
   let intY = pint 1
+--   let intY = pScaleInt 1
   let h x y = intY (intY (exp (h x (y * exp x) - 2 * h x y + h x (y * exp (-x)))) / y)
-  mapM_ print $ take 12 $ unF $ h x y
+--   let h x y = intY (intY (y * exp (h x (y * exp x) - 2 * h x y + h x (y * exp (-x)))))
+  let calH = h x y
+--   let d u = y * pderiv 1 u
+--   let lhs = d (d (d calH)) - d (d calH)
+--   let rhs = d (d calH) * (d (h x (y * exp x)) - 2 * d calH + d (h x (y * exp (-x))))
+--   print $ take 12 $ unF $ lhs
+--   print $ take 12 $ unF $ rhs
+--   mapM_ print $ unF $ calH
+  mapM_ print $ take 12 $ unF $ calH
+
+
+
+
+--   let continued (k : ks) = invert (1 : map (k *) (continued ks)) :: [Q]
+--   print $ take 15 $ continued [n | n <- [1 ..]]
+--   print $ take 15 $ unF $ 1 / cos (z :: Formal Q)
+
+--   let pderiv' _ (F []) = F []
+--       pderiv' 1 xs = xs + mapf (hderiv 1) (ftail xs)
+--       pderiv' i xs = mapf (hderiv i) (ftail xs)
+-- --   let u = var 0 6 :: MFormal Q
+--   let u = var 0 1
+--   let p i = var i (i + 1) :: MFormal Q
+--   let a nvars h = (1/2) * sum [
+--                 (ι i + ι j) * p i * p j * pderiv' (i + j) h + ι i * ι j * p (i + j) * pderiv' i (pderiv' j h) |
+--                 n <- [1 .. nvars],
+--                 i <- [1 .. n - 1],
+--                 let j = n - i :: Int]
+-- --   let h0 = exp (p 1) :: MFormal Q
+--   let h :: Int -> MFormal Q
+--       h 0 = 1
+--       h n = u * a (n + 1) (h (n - 1))
+-- --   print $ take 10 $ unF $ h0
+-- --   print $ take 10 $ unF $ h1
+-- --   print $ take 10 $ unF $ h2
+-- --   print $ take 10 $ unF $ h3
+--   print $ take 10 $ unF $ sum [h i | i <- [0 .. 6 :: Int]]
+-- --   print $ take 10 $ unF $ sum [h i/(fromIntegral (fact (fromIntegral i))) | i <- [0 .. 6 :: Int]]
+-- --   print $ take 10 $ unF $ h5
 
 --   let q0 = var 0 3 :: MFormal Q
 --   let q1 = var 1 3

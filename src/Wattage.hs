@@ -62,15 +62,18 @@ aas@(a : as) `lconvolve` ~(b : bs) = (a !* b) :
 
 as `ann` bs = drop (length as - 1) (reverse as `lconvolve` bs)
 
-compose (f : fs) (0 : gs) = f : (gs `convolve` (compose fs (0 : gs)))
+compose (f : fs) g@(0 : gs) = f : (gs `convolve` (compose fs g))
 compose _ _ = error "compose requires two non-empty lists, the second starting with 0"
 
 fcompose (F a) (F b) = F $ compose a b
 
-inverse (0:f:fs) = x where x     = 0 : map (recip f *) (0:1:g)
-                           _:_:g    = map negate (compose (0:0:fs) x)
+-- Lagrangian reversion
+inverse' (0:f:fs) = u where   u = 0 : x
+                              x = map (/f) (1:g)
+                              g = map negate (((x `convolve` x) `convolve` (compose fs u)))
 
-inverse _ = error "inverse applicable only to non-empty lists starting with 0"
+inverse' _ = error "inverse applicable only to non-empty lists starting with 0"
+inverse (F xs) = F $ inverse' xs
 
 -- reciprocal
 -- untested
@@ -92,6 +95,9 @@ divide (y : ys) (x0 : xs) = r where r = map (/ x0)  (y : (ys ^- (r `convolve` xs
 
 z :: Fractional a => Formal a
 z = F [0, 1]
+
+var :: Num a => Formal a
+var = F [0, 1]
 
 eval :: Num b => [b] -> b -> b
 eval [] x = 0

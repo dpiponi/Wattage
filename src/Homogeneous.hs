@@ -104,6 +104,9 @@ array' = A.array
 make_var :: (Show a, Num a) => Int -> Int -> Homogeneous a
 make_var i n = H {degree=1, num_vars=n, coefficients=array' (0, n-1) [(j, if i == j then 1 else 0) | j <- [0 .. n-1]] }
 
+var :: (Show a, Num a) => Int -> Homogeneous a
+var i = make_var i (i + 1)
+
 makeMonomial :: (Show a, Eq a, Num a) => a -> Exponent -> Homogeneous a
 makeMonomial a ks = 
     let d = sum ks
@@ -365,7 +368,24 @@ hderiv i (H d n c) =
                                            mjs /= Nothing,
                                            let Just js = mjs,
                                            let a = fromIntegral p * (c A.! addr' n d is)]
+
+-- scaleDeriv :: (Num a, Eq a, Show a) => Int -> Homogeneous a -> Homogeneous a
+-- scaleDeriv i Zero = Zero
+-- scaleDeriv i (H 0 n c) = Zero
+-- scaleDeriv i (H d n c) | i >= n = Zero
+-- scaleDeriv i (H d n c) =
+--     makeIndexHomogeneous n (d - 1) $ \i is -> let b = c A.! addr' n d is
+--                                               in b * fromIntegral (is !! i)
+
+scaleInt :: (Num a, Eq a, Show a, Fractional a) => Int -> Homogeneous a -> Homogeneous a
+scaleInt i Zero = Zero
+scaleInt i (H 0 n c) = Zero
+scaleInt i (H d n c) | i >= n = Zero
+scaleInt i (H d n c) =
+    makeIndexHomogeneous n (d - 1) $ \i is -> let b = c A.! addr' n d is
+                                              in b / fromIntegral (is !! i)
                                          
+-- probably bad on implicit vars XXX
 hint :: (Num a, Eq a, Show a, Fractional a) => Int -> Homogeneous a -> Homogeneous a
 hint i Zero = Zero
 hint i h@(H d n c) | i >= n = hint i (upgrade (i+1) h)
