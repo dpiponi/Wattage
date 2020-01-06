@@ -3,6 +3,7 @@ module Main where
 import Poly
 import Wattage
 import Homogeneous hiding (test)
+import Multivariate
 import Data.Array
 import Data.Ratio
 
@@ -13,7 +14,7 @@ import Data.Ratio
 
 -- make_zero n = H 1 n $ array (0, n-1) [(j, 0) | j <- [0 .. n-1]]
 
-z0 :: MFormal Rational
+z0 :: Multivariate Rational
 z0 = F [Zero, make_var 0 2]
 z1 = F [Zero, make_var 1 2]
 
@@ -26,17 +27,15 @@ test xs = xs
 u0 = make_var 0 2 :: Homogeneous Rational
 u1 = make_var 1 2 :: Homogeneous Rational
 
-var i j = F [Zero, make_var i j]
+-- var i j = F [Zero, make_var i j]
 
-type MFormal a = Formal (Homogeneous a)
-
-pderiv :: (Num a, Eq a, Show a) => Int -> MFormal a -> MFormal a
+pderiv :: (Num a, Eq a, Show a) => Int -> Multivariate a -> Multivariate a
 pderiv i xs = mapf (hderiv i) (ftail xs)
 
-pint :: (Num a, Eq a, Show a, Fractional a) => Int -> MFormal a -> MFormal a
+pint :: (Num a, Eq a, Show a, Fractional a) => Int -> Multivariate a -> Multivariate a
 pint i xs = 0 `prepend` mapf (hint i) xs
 
-pScaleInt :: (Num a, Eq a, Show a, Fractional a) => Int -> MFormal a -> MFormal a
+pScaleInt :: (Num a, Eq a, Show a, Fractional a) => Int -> Multivariate a -> Multivariate a
 pScaleInt i xs = mapf (scaleInt i) xs
 
 ι = fromIntegral
@@ -81,16 +80,16 @@ main = do
 --   let pderiv' _ (F []) = F []
 --       pderiv' 1 xs = xs + mapf (hderiv 1) (ftail xs)
 --       pderiv' i xs = mapf (hderiv i) (ftail xs)
--- --   let u = var 0 6 :: MFormal Q
+-- --   let u = var 0 6 :: Multivariate Q
 --   let u = var 0 1
---   let p i = var i (i + 1) :: MFormal Q
+--   let p i = var i (i + 1) :: Multivariate Q
 --   let a nvars h = (1/2) * sum [
 --                 (ι i + ι j) * p i * p j * pderiv' (i + j) h + ι i * ι j * p (i + j) * pderiv' i (pderiv' j h) |
 --                 n <- [1 .. nvars],
 --                 i <- [1 .. n - 1],
 --                 let j = n - i :: Int]
--- --   let h0 = exp (p 1) :: MFormal Q
---   let h :: Int -> MFormal Q
+-- --   let h0 = exp (p 1) :: Multivariate Q
+--   let h :: Int -> Multivariate Q
 --       h 0 = 1
 --       h n = u * a (n + 1) (h (n - 1))
 -- --   print $ take 10 $ unF $ h0
@@ -101,16 +100,16 @@ main = do
 -- --   print $ take 10 $ unF $ sum [h i/(fromIntegral (fact (fromIntegral i))) | i <- [0 .. 6 :: Int]]
 -- --   print $ take 10 $ unF $ h5
 
---   let q0 = var 0 3 :: MFormal Q
+--   let q0 = var 0 3 :: Multivariate Q
 --   let q1 = var 1 3
 --   let q2 = var 2 3
 --   print $ take 80 $ unF $ 1/((1+q2*q1)*(1-q0-2*q1+q0*q2))
 
---   let p i = var i (i + 1) :: MFormal Q
+--   let p i = var i (i + 1) :: Multivariate Q
 --   let a = p 1 * p 1 + p 2 * p 1
 --   print $ take 10 $ unF $ a
 -- 
---   let p i = var i 7 :: MFormal Q
+--   let p i = var i 7 :: Multivariate Q
 --   let a = p 1 * p 1 + p 2 * p 1
 --   print $ take 10 $ unF $ a
 

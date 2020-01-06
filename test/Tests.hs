@@ -2,6 +2,7 @@ import Prelude hiding (truncate)
 import Poly
 import Wattage as W
 import Homogeneous as H hiding (test)
+import Multivariate as M
 import Test.Tasty
 import Test.Tasty.HUnit
 import System.Environment
@@ -20,13 +21,25 @@ tests = testGroup "Tests"
 
 -- Basic functionality
 testBasic = testGroup "Tests of basic functionality"
-    [ testCase "Finite convolution 0*0" testFiniteConvolution00,
+    [ testCase "Extract coefficients" testCoefficients,
+      testCase "Finite convolution 0*0" testFiniteConvolution00,
       testCase "Finite convolution 0*1" testFiniteConvolution01,
       testCase "Finite convolution 1*0" testFiniteConvolution10,
       testCase "Finite convolution 1*1" testFiniteConvolution11,
       testCase "Finite convolution (x+1)²" testFiniteConvolutionPoly1,
       testCase "Finite convolution (x+2)(2x+3)" testFiniteConvolutionPoly2
     ]
+
+testCoefficients = do
+    W.coefficient 0 1 @?= 1
+    W.coefficient 1 1 @?= 0
+    W.coefficient 0 z @?= 0
+    W.coefficient 1 z @?= 1
+    W.coefficient 2 z @?= 0
+    W.coefficient 0 (z * z) @?= 0
+    W.coefficient 1 (z * z) @?= 0
+    W.coefficient 2 (z * z) @?= 1
+    W.coefficient 3 (z * z) @?= 0
 
 testFiniteConvolution00 = [] `fconvolve` []  @?= []
 testFiniteConvolution01 = [] `fconvolve` [1]  @?= []
@@ -163,10 +176,28 @@ testClausenFormula =
 -- Homogeneous polynomial tests
 testHomogeneous = testGroup "Homogeneous polynomial tests"
     [testCase "Match zero" testMatchZero,
+     testCase "Extract coefficients" testHomogeneousCoefficients,
      testCase "Integration 1" testHomogeneousIntegration1,
      testCase "Integration 2" testHomogeneousIntegration2,
      testCase "Integration 3" testHomogeneousIntegration3,
      testCase "Implicit variables" testImplicitVariables]
+
+testHomogeneousCoefficients = do
+    let x0 = make_var 0 2
+    let x1 = make_var 1 2
+    H.coefficient [1, 0] x0 @?= 1
+    H.coefficient [0, 1] x0 @?= 0
+    H.coefficient [1, 0] x1 @?= 0
+    H.coefficient [0, 1] x1 @?= 1
+    H.coefficient [2, 0] (x0 * x0) @?= 1
+    H.coefficient [1, 1] (x0 * x0) @?= 0
+    H.coefficient [0, 2] (x0 * x0) @?= 0
+    H.coefficient [2, 0] (x0 * x1) @?= 0
+    H.coefficient [1, 1] (x0 * x1) @?= 1
+    H.coefficient [0, 2] (x0 * x1) @?= 0
+    H.coefficient [2, 0] (x1 * x1) @?= 0
+    H.coefficient [1, 1] (x1 * x1) @?= 0
+    H.coefficient [0, 2] (x1 * x1) @?= 1
 
 testMatchZero = do
     let x0 = make_var 0 2
@@ -187,44 +218,64 @@ testImplicitVariables = do
     assertEqual "x01 == x02" x01 x02
     assertEqual "x01 - x01 == 0" (x01 -x02) 0
     assertEqual "x01 * x02 == x02 * x02" (x01 * x02) (x02 * x02)
-    assertEqual "hderiv 0 x01 == hderiv 0 x02" (hderiv 0 x01) (hderiv 0 x02)
-    assertEqual "hderiv 1 x01 == hderiv 1 x02" (hderiv 1 x01) (hderiv 1 x02)
-    assertEqual "hderiv 2 x01 == hderiv 2 x02" (hderiv 2 x01) (hderiv 2 x02)
-    assertEqual "hderiv 0 (x01 * x01) == hderiv 0 (x02 * x02)" (hderiv 0 (x01 * x01)) (hderiv 0 (x02 * x02))
-    assertEqual "hderiv 1 (x01 * x01 * x12) == hderiv 1 (x02 * x02 * x12)"
-                 (hderiv 0 (x01 * x01 * x12))
-                 (hderiv 0 (x02 * x02 * x12))
+    assertEqual "H.d 0 x01 == H.d 0 x02" (H.d 0 x01) (H.d 0 x02)
+    assertEqual "H.d 1 x01 == H.d 1 x02" (H.d 1 x01) (H.d 1 x02)
+    assertEqual "H.d 2 x01 == H.d 2 x02" (H.d 2 x01) (H.d 2 x02)
+    assertEqual "H.d 0 (x01 * x01) == H.d 0 (x02 * x02)" (H.d 0 (x01 * x01)) (H.d 0 (x02 * x02))
+    assertEqual "H.d 1 (x01 * x01 * x12) == H.d 1 (x02 * x02 * x12)"
+                 (H.d 0 (x01 * x01 * x12))
+                 (H.d 0 (x02 * x02 * x12))
 
 testHomogeneousIntegration1 = 
   let x0 = make_var 0 2
       x1 = make_var 1 2
-  in hint 0 x1 @?= x0 * x1
+  in H.integrate 0 x1 @?= x0 * x1
 
 testHomogeneousIntegration2 = 
   let x0 = make_var 0 1
-  in hint 0 1 @?= x0
+  in H.integrate 0 1 @?= x0
 
 testHomogeneousIntegration3 = 
   let x0 = make_var 0 1
       x1 = make_var 1 1
       x2 = make_var 2 1
-  in hint 2 (x0 * x0 * x1 * x1 * x2 * x2) @?= (1 / 3) * x0 * x0 * x1 * x1 * x2 * x2 * x2
+  in H.integrate 2 (x0 * x0 * x1 * x1 * x2 * x2) @?= (1 / 3) * x0 * x0 * x1 * x1 * x2 * x2 * x2
 
 -- Multivariate tests
 testMultivariate = testGroup "Multivariate tests" 
-    [ testCase "Hurwitz numbers" testHurwitzNumbers]
+    [ testCase "Multivariate coefficients" testMultivariateCoefficients,
+      testCase "Hurwitz numbers" testHurwitzNumbers]
 
-type MFormal a = Formal (Homogeneous a)
+testMultivariateCoefficients = do
+    let x0 = M.var 0
+    let x1 = M.var 1
+    let x2 = M.var 2
+    M.coefficient [] 1 @?= 1
+    M.coefficient [1] 1 @?= 0
+    M.coefficient [1] x0 @?= 1
+    M.coefficient [0, 1] x0 @?= 0
+    M.coefficient [0, 1] x1 @?= 1
+    M.coefficient [1, 0] x0 @?= 1
+    M.coefficient [1, 0] x1 @?= 0
+    M.coefficient [1, 1, 1] x0 @?= 0
+    M.coefficient [1, 1, 1] (x0 ^ 2) @?= 0
+    M.coefficient [1, 1, 1] (x0 ^ 3) @?= 0
+    M.coefficient [1, 1, 1] (x0 * x1 * x2) @?= 1
+    M.coefficient [1, 1] (x0 * x1 * x2) @?= 0
+    M.coefficient [1] (x0 * x1 * x2) @?= 0
+    M.coefficient [] (x0 * x1 * x2) @?= 0
+    M.coefficient [] (1 + x0 * x1 * x2) @?= 1
+    M.coefficient (take 10 $ repeat 1) x0 @?= 0
 
 testHurwitzNumbers =
   let x0 = H.var 0
       x1 = H.var 1
-      z0 = F $ Zero : x0 : repeat Zero :: MFormal Rational
-      z1 = F $ Zero : x1 : repeat Zero :: MFormal Rational
+      z0 = M.var 0 :: Multivariate Rational
+      z1 = M.var 1 :: Multivariate Rational
       x = z0
       y = z1
       intY = pint 1
-      pint i xs = 0 `prepend` mapf (hint i) xs
+      pint i xs = 0 `prepend` mapf (H.integrate i) xs
       h x y = intY (intY (exp (h x (y * exp x) - 2 * h x y + h x (y * exp (-x)))) / y)
       term10 = unF (h x y) !! 10
   in term10 @?= (1 / 80640) * x0 * x0 * x0 * x0 * x0 * x0 * x0 * x0 * x1 * x1 + (1 / 6) * x0 * x0 * x0 * x0 * x0 * x0 * x1 * x1 * x1 * x1

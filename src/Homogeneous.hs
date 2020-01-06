@@ -45,10 +45,29 @@ type Exponent = [Int]
 --   in hdim r m + addr r (tail exponents)
 
 addr' :: Int -> Int -> Exponent -> Int
+addr' _ _ [] = 0 -- ??? XXX ???
 addr' _ _ [_] = 0
 addr' n deg (e : es) =
   let r = deg - e
   in hdim r (n - 1) + addr' (n - 1) r es
+
+trimmed :: (Eq a, Num a) => [a] -> [a]
+trimmed [] = []
+trimmed (0 : xs) = let ys = trimmed xs
+                   in if ys == [] then [] else 0 : ys
+trimmed (x : xs) = x : trimmed xs
+
+
+coefficient :: Num a => Exponent -> Homogeneous a -> a
+coefficient _ Zero = 0
+coefficient is (H d n cs) =
+    let is' = trimmed is
+        nn = length is'
+        dd = sum is'
+    in if nn > n
+          then 0
+          else cs A.! addr' n d is'
+
 
 {-
  - Δₓ hdim x d = hdim (x + 1) (d - 1)
@@ -369,6 +388,9 @@ hderiv i (H d n c) =
                                            let Just js = mjs,
                                            let a = fromIntegral p * (c A.! addr' n d is)]
 
+d :: (Num a, Eq a, Show a) => Int -> Homogeneous a -> Homogeneous a
+d = hderiv
+
 -- scaleDeriv :: (Num a, Eq a, Show a) => Int -> Homogeneous a -> Homogeneous a
 -- scaleDeriv i Zero = Zero
 -- scaleDeriv i (H 0 n c) = Zero
@@ -396,3 +418,6 @@ hint i h@(H d n c) = --trace (show (i, d, n, c)) $
                                            mjs /= Nothing,
                                            let Just js = mjs,
                                            let a = (c A.! addr' n d js) / fromIntegral (is !! i)]
+
+integrate :: (Num a, Eq a, Show a, Fractional a) => Int -> Homogeneous a -> Homogeneous a
+integrate = hint

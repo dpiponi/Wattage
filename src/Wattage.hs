@@ -364,3 +364,8 @@ factorial n = n*factorial (n-1)
 besselJ :: (Show x, Eq x, Fractional x) => Integer -> Formal x -> Formal x
 besselJ n x = let scale = 1/fromRational (fromIntegral (factorial n))
               in mapf (scale *) $ f01 (fromInteger n + 1) (-x^2 / 4) * (x / 2)^n
+
+coefficient :: (Eq a, Num a) => Int -> Formal a -> a
+coefficient i 0 = 0
+coefficient 0 (F (x : _)) = x
+coefficient i (F (x : xs)) = coefficient (i - 1) (F xs)
