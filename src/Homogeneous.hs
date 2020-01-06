@@ -1,8 +1,8 @@
-{-# LANGUAGE TypeApplications #-}
+
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE DeriveAnyClass #-}
+
 
 module Homogeneous where
 
@@ -15,11 +15,8 @@ import qualified Data.List as L
 import Control.Monad.ST
 import Data.Ratio
 import Data.Maybe
-import qualified Data.Map as Map
 import Debug.Trace
 import Wattage
-import Control.Monad.ST
-import Data.Array.ST
 
 type Z = Integer
 
@@ -112,7 +109,7 @@ instance (Fractional a, Show a, Eq a) => Fractional (Homogeneous a) where
   fromRational i = H 0 1 $ listArray' (0, 0) [fromRational i]
   _ / Zero = error "Division by zero"
   Zero / _ = Zero
-  h0@(H d0 n0 c0) / h1@(H d1 n1 c1) = 
+  h0@(H d0 n0 c0) / h1@(H d1 n1 c1) =
         let n = max n0 n1
             h0' = if n0 < n then upgrade n h0 else h0
             h1' = if n1 < n then upgrade n h1 else h1
@@ -128,7 +125,7 @@ var :: (Show a, Num a) => Int -> Homogeneous a
 var i = make_var i (i + 1)
 
 makeMonomial :: (Show a, Eq a, Num a) => a -> Exponent -> Homogeneous a
-makeMonomial a ks = 
+makeMonomial a ks =
     let d = sum ks
         n = length ks
         size = hdim n d
@@ -155,7 +152,7 @@ upgrade n1 (H d n0 c0) =
   let s0 = hdim n0 d -- pochhammer n0 d `div` fact d
       s1 = hdim n1 d -- pochhammer n1 d `div` fact d
 --   in H d n1 $ array' (0, s1 - 1) [(i, if i < s0 then c0 A.! i else 0) | i <- [0 .. s1 - 1]]
-  in homogeneousFromList n1 d $ [(c0 A.! addr' n0 d i, i) | i <- allOfDegree d n0]
+  in homogeneousFromList n1 d [(c0 A.! addr' n0 d i, i) | i <- allOfDegree d n0]
 
 -- Worried about this XXX. ScopedTypeVariables should mean I don't need 2nd Num a.
 homogeneousFromList :: Num a => Int -> Int -> [(a, Exponent)] -> Homogeneous a
@@ -167,7 +164,7 @@ homogeneousFromList n d as =
 
 makeHomogeneous :: Int -> Int -> (Exponent -> a) -> Homogeneous a
 makeHomogeneous d n f =
-    H d n $ A.listArray (0, hdim n d -1) $ [f is |
+    H d n $ A.listArray (0, hdim n d -1) [f is |
                                             is <- allOfDegree d n]
 makeIndexHomogeneous :: Int -> Int -> (Int -> Exponent -> a) -> Homogeneous a
 makeIndexHomogeneous d n f =
@@ -226,7 +223,7 @@ withAllSplits' addr0 addr1 n0 n1 d0 d1 (i : is) f = do
 htimes :: (Show a, Num a) => Homogeneous a -> Homogeneous a -> Homogeneous a
 htimes Zero _ = Zero
 htimes _ Zero = Zero
-htimes (H d0 n0 c0) (H d1 n1 c1) = 
+htimes (H d0 n0 c0) (H d1 n1 c1) =
   makeHomogeneous (d0 + d1) n0 $ \is ->
     sum $ withAllSplits' 0 0 n0 n1 d0 d1 is $ \addrj addrk ->
         c0 A.! addrj * c1 A.! addrk
@@ -312,12 +309,12 @@ simpleDivide Zero _ _ _ = error "Zero should have been handled by divide"
 simpleDivide h0@(H d0 n0 c0) d1 a ks =
     makeHomogeneous (d0 - d1) n0 $ \js ->
         c0 A.! addr' n0 d0 (exponentAdd js ks) / a
-    
+
 -- XXX Need to not repeatedly restart when looking for leading term
 hdivide' :: (Eq a, Num a, Fractional a, Show a) => [(a, Exponent)] -> Homogeneous a -> Homogeneous a -> [(a, Exponent)]
 hdivide' acc Zero _ = acc
 hdivide' _ _ Zero = error "Dvision by zero"
-hdivide' acc h0 h1@(H d1 n1 c1) = 
+hdivide' acc h0 h1@(H d1 n1 c1) =
     case leadingTerm h1 of
         Nothing -> error "Division by zero"
         Just (i1, lt1) -> hdivide'' (c1 A.! i1) lt1 acc h0 h1
@@ -333,7 +330,7 @@ hdivide'' a lt1 acc h0@(H d0 n0 c0) h1@(H d1 n1 c1) =
                                acc' = (ratio, js) : acc
                            in hdivide'' a lt1 acc' (subtractMonomialTimes' h0 ratio js h1) h1
                       else error ("Doesn't divide:" ++ show h0 ++ " / " ++ show h1)
-                            
+
 hscale :: (Eq a, Num a) => a -> Homogeneous a -> Homogeneous a
 hscale _ Zero = Zero
 -- hscale 0 _ = Zero
@@ -389,7 +386,7 @@ hderiv i (H 0 n c) = Zero
 hderiv i (H d n c) | i >= n = Zero
 hderiv i (H d n c) =
     let size = hdim n (d - 1)
-    in homogeneousFromList n (d - 1) $ [(a, js) |
+    in homogeneousFromList n (d - 1) [(a, js) |
                                            is <- allOfDegree d n,
                                            let p = is !! i,
                                            let mjs = decr i is,
@@ -415,7 +412,7 @@ scaleInt i (H d n c) | i >= n = Zero
 scaleInt i (H d n c) =
     makeIndexHomogeneous n (d - 1) $ \i is -> let b = c A.! addr' n d is
                                               in b / fromIntegral (is !! i)
-                                         
+
 -- probably bad on implicit vars XXX
 hint :: (Num a, Eq a, Show a, Fractional a) => Int -> Homogeneous a -> Homogeneous a
 hint i Zero = Zero
