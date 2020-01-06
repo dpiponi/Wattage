@@ -13,10 +13,15 @@ main = do
   --  0123
   -- |    |
   -- |  □□| z2
+  -- |    |
   -- | □□ | z1
+  -- |    |
   -- |□□□□| z0 * z2
+  -- |    |
   -- |  □□| z2
+  -- |    |
   -- | □□ | z1
+  -- |    |
   -- |□□  | z0
   -- +----+
   -- We use z0, z1, z2 to represent the piece
@@ -33,9 +38,44 @@ main = do
   -- So we have:
   let trivial = 1 - z0 - z1 - z2 + z0 * z2
   -- Then the sum of all heaps is given by:
-  let heaps = 1 / (1 - z0 - z1 - z2 + z0 * z2)
+  let heaps = 1 / trivial
 
-  -- For example, the number of heaps with 99 on the
+  -- For example, the number of heaps with 90 on the
   -- left and 9 in the middle is the binmoial
-  -- coefficient 99C9
+  -- coefficient 99C9 = 1731030945644
   print $ (M.coefficient [90,9,0] heaps :: Rational)
+
+  -- We can also allow vertical pieces
+  --  0123
+  -- |    |
+  -- |□   | x0
+  -- |□   |
+  -- |    |
+  -- | □  | x1
+  -- | □  |
+  -- |    |
+  -- |  □ | x2
+  -- |  □  |
+  -- |    |
+  -- |   □| x3
+  -- |   □ |
+  -- +----+
+
+  let x0 = M.var 3
+  let x1 = M.var 4
+  let x2 = M.var 5
+  let x3 = M.var 6
+  let trivial' = 1 - z0 - z1 - z2 + z0 * z2
+                   - x0 - x1 - x2 - x3
+                   + x0 * x1 + x0 * x2 + x0 * x3
+                   + x1 * x2 + x1 * x3 + x2 * x3
+                   - x0 * x1 * x2 - x0 * x1 * x3
+                   - x0 * x2 * x3 - x1 * x2 * x3
+                   + x0 * x1 * x2 * x3
+                   + z0 * x2 + z0 * x3 - z0 * x2 * x3
+                   + z1 * x0 + z1 * x3 - z1 * x0 * x3
+                   + z2 * x0 + z2 * x1 - z2 * x0 * x1
+  let heaps' = 1 / trivial'
+  -- The number of ways to stack one of each horizontal
+  -- piece and a vertical piece in column 1 is 12
+  print $ (M.coefficient [1, 1, 1, 0, 1] $ heaps' :: Rational)
