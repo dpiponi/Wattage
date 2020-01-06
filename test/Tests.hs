@@ -176,11 +176,28 @@ testClausenFormula =
 -- Homogeneous polynomial tests
 testHomogeneous = testGroup "Homogeneous polynomial tests"
     [testCase "Match zero" testMatchZero,
+     testCase "Division" testDivision,
      testCase "Extract coefficients" testHomogeneousCoefficients,
      testCase "Integration 1" testHomogeneousIntegration1,
      testCase "Integration 2" testHomogeneousIntegration2,
      testCase "Integration 3" testHomogeneousIntegration3,
      testCase "Implicit variables" testImplicitVariables]
+
+testDivision = do
+    let x0 = make_var 0 2
+    let x1 = make_var 1 2
+    x0 / x0 @?= 1
+    x0 / 1 @?= x0
+    x1 / x1 @?= 1
+    x1 * x1 / x1 @?= x1
+    0 / x0 @?= 0
+    0 / x1 @?= 0
+    (x0 - x0) * x1 / x1 @?= 0
+    (x0 - x1) / (x0 - x1) @?= 1
+    (x0^2 - 2 * x0 * x1 + x1^2) /(x0 - x1) @?= x0 - x1
+    x0^10 * x1^11 /(x0^5 * x1^5) @?= x0^5 * x1^6
+    0 / (x0 + x1) @?= 0
+    (x0 + x1)^10 / (x0 + x1)^9 @?= x0 + x1
 
 testHomogeneousCoefficients = do
     let x0 = make_var 0 2

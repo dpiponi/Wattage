@@ -79,3 +79,5 @@ main = do
   -- The number of ways to stack one of each horizontal
   -- piece and a vertical piece in column 1 is 12
   print $ (M.coefficient [1, 1, 1, 0, 1] $ heaps' :: Rational)
+
+  print $ (M.coefficient [2, 2, 2, 2, 2, 2, 2] $ heaps' :: Rational)

@@ -298,6 +298,8 @@ onlyTerm (H d n c) =
         [(a, ks)] -> Just (a, ks)
         otherwise -> Nothing
 
+hdivide _ Zero = error "Division by zero"
+hdivide Zero _ = Zero
 hdivide h0@(H d0 n0 c0) h1@(H d1 n1 c1) = --trace (show (h0, h1)) $
     case onlyTerm h1 of
         Just (a, ks) -> simpleDivide h0 d1 a ks
@@ -314,6 +316,8 @@ hdivide' acc h0 h1@(H d1 n1 c1) =
     case leadingTerm h1 of
         Nothing -> error "Division by zero"
         Just (i1, lt1) -> hdivide'' (c1 A.! i1) lt1 acc h0 h1
+-- Perform actual division by repeated subtraction.
+-- hdivide'' _ _ _ Zero _ = error "
 hdivide'' a lt1 acc h0@(H d0 n0 c0) h1@(H d1 n1 c1) =
             case leadingTerm h0 of
                 Nothing -> acc
