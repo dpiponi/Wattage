@@ -53,10 +53,10 @@ sample a = map (`count` a) [0..16]
 [] `convolve` _ = []
 _ `convolve` [] = []
 (a : as) `convolve` bbs@(b : bs) = (a *! b) :
-    ((map (a !*) bs) ^+ (as `convolve` bbs))
+    (map (a !*) bs) ^+ (as `convolve` bbs)
 
 aas@(a : as) `lconvolve` ~(b : bs) = (a !* b) :
-    ((map (*! b) as) ^+ (aas `lconvolve` bs))
+    (map (*! b) as) ^+ (aas `lconvolve` bs)
 
 [] `lconvolve` ~(a : as) = []
 
@@ -71,7 +71,7 @@ fcompose (F a) (F b) = F $ compose a b
 -- Lagrangian reversion
 inverse' (0:f:fs) = u where   u = 0 : x
                               x = map (/f) (1:g)
-                              g = map negate (((x `convolve` x) `convolve` (compose fs u)))
+                              g = map negate ((x `convolve` x) `convolve` compose fs u)
 
 inverse' _ = error "inverse applicable only to non-empty lists starting with 0"
 inverse (F xs) = F $ inverse' xs
@@ -165,12 +165,12 @@ t' :: Formal Rational
 t' = t
 
 lead [] x = x
-lead (a:as) x = a : (lead as (tail x))
+lead (a:as) x = a : lead as (tail x)
 a ... F x = F $ lead a x
 
 one = t'
 list x     = 1/(1-x)
-set x     = exp x
+set     = exp
 ring x     = -log(1-x)
 pair x     = x*x
 oneOf a b   = a+b
@@ -179,11 +179,11 @@ union a b   = a*b
 
 -- Filter
 (//) :: Fractional a => [a] -> (Integer -> Bool) -> [a]
-(//) a c = zipWith (\a b->(if (c a :: Bool) then b else 0)) [(0::Integer)..] a
+(//) a c = zipWith (\a b -> if (c a :: Bool) then b else 0) [(0::Integer)..] a
 
 nonEmpty a = a // (/= 0)
 
-count n a = ((a!!fromInteger n) * (factorial (fromInteger n)))
+count n a = (a!!fromInteger n) * factorial (fromInteger n)
 
 tree x = p where p = [0] ... union (set p) x
 
@@ -226,8 +226,8 @@ itexp' :: (Num a, Eq a, Fractional a) => [a] -> [a] -> [a] -> Int -> [a]
 itexp' f total term n = take (n - 1) total `lead`
             itexp' f (total ^+ term) (map (/fromIntegral n) (f `convolve` dlist term)) (n+1)
 
-itsqrt x = itexp ((itlog x) / 2)
-itpow x n = itexp ((itlog x) * n)
+itsqrt x = itexp (itlog x / 2)
+itpow x n = itexp (itlog x * n)
 
 prepend :: a -> Formal a -> Formal a
 prepend a (F bs) = F (a : bs)
@@ -273,7 +273,7 @@ theta3 q = let t = 1 : intercalate [2] (map (`replicate` 0) [0, 2..])
            in t `compose` q
 
 theta4 q = let t = 1 : intercalate [2] (map (`replicate` 0) [0, 2..])
-           in (zipWith (*) t (cycle [1, -1])) `compose` q
+           in zipWith (*) t (cycle [1, -1]) `compose` q
 
 -- sumOfSquares = (theta3 z)^2
 

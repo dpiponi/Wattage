@@ -42,7 +42,7 @@ main = do
   -- For example, the number of heaps with 90 on the
   -- left and 9 in the middle is the binomial
   -- coefficient 99C9 = 1731030945644
-  print $ (M.coefficient [90,9,0] heaps :: Rational)
+  print (M.coefficient [90,9,0] heaps :: Rational)
 
   -- We can also allow vertical pieces
   --  0123
@@ -77,6 +77,6 @@ main = do
   let heaps' = 1 / trivial'
   -- The number of ways to stack one of each horizontal
   -- piece and a vertical piece in column 1 is 12
-  print $ (M.coefficient [1, 1, 1, 0, 1] $ heaps' :: Rational)
+  print (M.coefficient [1, 1, 1, 0, 1] heaps' :: Rational)
 
-  print $ (M.coefficient [2, 2, 2, 2, 2, 2, 2] $ heaps' :: Rational)
+  print (M.coefficient [2, 2, 2, 2, 2, 2, 2] heaps' :: Rational)
