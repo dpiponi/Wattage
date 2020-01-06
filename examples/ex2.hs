@@ -9,7 +9,6 @@ main = do
   let z2 = M.var 2
   -- Consider a tetris type game with just the piece □□
   -- and only 4 columns. No rotation of pieces allowed.
-  -- Here's a possible configuration
   --  0123
   -- |    |
   -- |  □□| z2
@@ -41,7 +40,7 @@ main = do
   let heaps = 1 / trivial
 
   -- For example, the number of heaps with 90 on the
-  -- left and 9 in the middle is the binmoial
+  -- left and 9 in the middle is the binomial
   -- coefficient 99C9 = 1731030945644
   print $ (M.coefficient [90,9,0] heaps :: Rational)
 

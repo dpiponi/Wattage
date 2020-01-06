@@ -14,6 +14,7 @@ import Control.Monad
 import qualified Data.List as L
 import Control.Monad.ST
 import Data.Ratio
+import Data.Maybe
 import qualified Data.Map as Map
 import Debug.Trace
 import Wattage
@@ -32,8 +33,8 @@ pochhammer x n = product [x, x+1 .. x+n-1]
 hdim' :: Int -> Int -> Int
 hdim' n d = fromInteger (pochhammer (fromIntegral n) (fromIntegral d) `div` fact (fromIntegral d))
 
-hdim_cache = A.array ((0, 0), (99, 99)) [((i, j), hdim' i j) | i <- [0..99], j <- [0..99]]
-hdim i j = hdim_cache A.! (i, j)
+hdimCache = A.array ((0, 0), (255, 255)) [((i, j), hdim' i j) | i <- [0..255], j <- [0..255]]
+hdim i j = if i < 256 && j < 256 then hdimCache A.! (i, j) else hdim' i j
 
 type Exponent = [Int]
 
@@ -54,7 +55,7 @@ addr' n deg (e : es) =
 trimmed :: (Eq a, Num a) => [a] -> [a]
 trimmed [] = []
 trimmed (0 : xs) = let ys = trimmed xs
-                   in if ys == [] then [] else 0 : ys
+                   in if null ys then [] else 0 : ys
 trimmed (x : xs) = x : trimmed xs
 
 
@@ -90,7 +91,7 @@ subscript :: Int -> String
 subscript = map (\c -> Map.findWithDefault c c subscripts) . show
 
 enumerate :: [a] -> [(Int, a)]
-enumerate as = zip [0 ..] as
+enumerate = zip [0 ..]
 
 showVar :: Int -> Int -> String
 showVar i k = "x" ++ subscript i ++ superscript k
@@ -170,7 +171,7 @@ makeHomogeneous d n f =
                                             is <- allOfDegree d n]
 makeIndexHomogeneous :: Int -> Int -> (Int -> Exponent -> a) -> Homogeneous a
 makeIndexHomogeneous d n f =
-    H d n $ array' (0, hdim n d -1) $ [(i, f i is) |
+    H d n $ array' (0, hdim n d -1) [(i, f i is) |
                                        (i, is) <- enumerate (allOfDegree d n)]
 
 -- allSplits :: Int -> Int -> Exponent -> [(Exponent, Exponent)]
@@ -208,9 +209,7 @@ makeIndexHomogeneous d n f =
 withAllSplits' :: Int -> Int -> Int -> Int -> Int -> Int -> Exponent -> (Int -> Int -> a) -> [a]
 withAllSplits' _ _ _ _ _ _ [] _ = error "Can only split a non-empty exponent list"
 withAllSplits' addr0 addr1 n0 n1 d0 d1 [d] f =
-  if d == d0 + d1
-    then [f addr0 addr1]
-    else []
+    [f addr0 addr1 | d == d0 + d1]
 withAllSplits' addr0 addr1 n0 n1 d0 d1 (i : is) f = do
   let lower = max 0 (i - d1)
   let upper = min i d0
@@ -233,10 +232,10 @@ htimes (H d0 n0 c0) (H d1 n1 c1) =
         c0 A.! addrj * c1 A.! addrk
 
 exponentAdd :: Exponent -> Exponent -> Exponent
-exponentAdd a b = zipWith (+) a b
+exponentAdd = zipWith (+)
 
 exponentSub :: Exponent -> Exponent -> Exponent
-exponentSub a b = zipWith (-) a b
+exponentSub = zipWith (-)
 
 allGreaterEqual :: Exponent -> Exponent -> Bool
 allGreaterEqual [] [] = True
@@ -273,9 +272,14 @@ decr n (i : is) = do
 subtractMonomialTimes' :: (Show a, Num a) => Homogeneous a -> a -> Exponent -> Homogeneous a -> Homogeneous a
 subtractMonomialTimes' Zero _ _ Zero = Zero
 subtractMonomialTimes' h _ _ Zero = h
+-- This branch untested.
+-- Probably never called. XXX
+subtractMonomialTimes' Zero a js (H d0 n0 c0) =
+    makeIndexHomogeneous d0 n0 $ \i ks ->
+         if allGreaterEqual ks js
+             then -a * c0 A.! addr' n0 d0 (exponentSub ks js)
+             else 0
 subtractMonomialTimes' (H d1 n1 c1) a js (H d0 n0 c0) =
---     let --d1 = sum js + d0
---         size1 = hdim n d1
     makeIndexHomogeneous d1 n1 $ \i ks ->
          if allGreaterEqual ks js
              then c1 A.! i - a * c0 A.! addr' n0 d0 (exponentSub ks js)
@@ -288,7 +292,7 @@ maybeHead (a : as) = Just a
 leadingTerm :: (Eq a, Num a, Show a) => Homogeneous a -> Maybe (Int, Exponent)
 leadingTerm Zero = Nothing
 leadingTerm (H d n c) =
-    maybeHead $ [ (i, ks) | (i, ks) <- enumerate (allOfDegree d n),
+    maybeHead [ (i, ks) | (i, ks) <- enumerate (allOfDegree d n),
                        c A.! i /= 0 ]
 
 onlyTerm :: (Eq a, Num a, Show a) => Homogeneous a -> Maybe (a, Exponent)
@@ -303,7 +307,8 @@ hdivide Zero _ = Zero
 hdivide h0@(H d0 n0 c0) h1@(H d1 n1 c1) = --trace (show (h0, h1)) $
     case onlyTerm h1 of
         Just (a, ks) -> simpleDivide h0 d1 a ks
-        otherwise -> homogeneousFromList (max n0 n1) (d0 - d1) (hdivide' [] h0 h1)
+        Nothing -> homogeneousFromList (max n0 n1) (d0 - d1) (hdivide' [] h0 h1)
+simpleDivide Zero _ _ _ = error "Zero should have been handled by divide"
 simpleDivide h0@(H d0 n0 c0) d1 a ks =
     makeHomogeneous (d0 - d1) n0 $ \js ->
         c0 A.! addr' n0 d0 (exponentAdd js ks) / a
@@ -316,8 +321,8 @@ hdivide' acc h0 h1@(H d1 n1 c1) =
     case leadingTerm h1 of
         Nothing -> error "Division by zero"
         Just (i1, lt1) -> hdivide'' (c1 A.! i1) lt1 acc h0 h1
--- Perform actual division by repeated subtraction.
--- hdivide'' _ _ _ Zero _ = error "
+hdivide'' _ _ _ Zero _ = error "Should already have been handled by hdivide"
+hdivide'' _ _ _ H{} Zero = error "Should already have been handled by hdivide"
 hdivide'' a lt1 acc h0@(H d0 n0 c0) h1@(H d1 n1 c1) =
             case leadingTerm h0 of
                 Nothing -> acc
@@ -388,7 +393,7 @@ hderiv i (H d n c) =
                                            is <- allOfDegree d n,
                                            let p = is !! i,
                                            let mjs = decr i is,
-                                           mjs /= Nothing,
+                                           isJust mjs,
                                            let Just js = mjs,
                                            let a = fromIntegral p * (c A.! addr' n d is)]
 
@@ -416,10 +421,10 @@ hint :: (Num a, Eq a, Show a, Fractional a) => Int -> Homogeneous a -> Homogeneo
 hint i Zero = Zero
 hint i h@(H d n c) | i >= n = hint i (upgrade (i+1) h)
 hint i h@(H d n c) = --trace (show (i, d, n, c)) $
-     homogeneousFromList n (d + 1) $ [(a, is) |
+     homogeneousFromList n (d + 1) [(a, is) |
                                            is <- allOfDegree (d + 1) n,
                                            let mjs = decr i is,
-                                           mjs /= Nothing,
+                                           isJust mjs,
                                            let Just js = mjs,
                                            let a = (c A.! addr' n d js) / fromIntegral (is !! i)]
 

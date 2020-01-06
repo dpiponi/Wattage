@@ -48,7 +48,7 @@ perrin = 3 : 0 : 2 : perrin ^+ tail perrin
 
 perrinAnn = [-1, -1, 0, 1]
 
-sample a = map (flip count a) [0..16]
+sample a = map (`count` a) [0..16]
 
 [] `convolve` _ = []
 _ `convolve` [] = []
@@ -63,7 +63,7 @@ aas@(a : as) `lconvolve` ~(b : bs) = (a !* b) :
 as `ann` bs = drop (length as - 1) (reverse as `lconvolve` bs)
 
 compose [] _ = []
-compose (f : fs) g@(0 : gs) = f : (gs `convolve` (compose fs g))
+compose (f : fs) g@(0 : gs) = f : (gs `convolve` compose fs g)
 compose _ _ = error "compose requires two non-empty lists, the second starting with 0"
 
 fcompose (F a) (F b) = F $ compose a b
@@ -179,15 +179,15 @@ union a b   = a*b
 
 -- Filter
 (//) :: Fractional a => [a] -> (Integer -> Bool) -> [a]
-(//) a c = zipWith (\a-> \b->(if (c a :: Bool) then b else 0)) [(0::Integer)..] a
+(//) a c = zipWith (\a b->(if (c a :: Bool) then b else 0)) [(0::Integer)..] a
 
 nonEmpty a = a // (/= 0)
 
-count n a = ((a!!(fromInteger n)) * (factorial (fromInteger n)))
+count n a = ((a!!fromInteger n) * (factorial (fromInteger n)))
 
 tree x = p where p = [0] ... union (set p) x
 
-graph = F $ [2^((n*(n-1) `div` 2)) / product (map fromInteger [1..n]) | n <- [0..]] :: Formal Rational
+graph = F [2^(n*(n-1) `div` 2) / product (map fromInteger [1..n]) | n <- [0..]] :: Formal Rational
 
 connectedGraph = 1 + log graph
 
@@ -266,13 +266,13 @@ dilog x = integrate $ -log (1-x)*d x/x
 
 -- Theta constants
 -- θ₂(z) = z^(1/4)*modifiedTheta2 z
-modifiedTheta2 q = let t = 2 : (intercalate [2] $ map (flip replicate 0) [1, 3..])
+modifiedTheta2 q = let t = 2 : intercalate [2] (map (`replicate` 0) [1, 3..])
                    in t `compose` q
 
-theta3 q = let t = 1 : (intercalate [2] $ map (flip replicate 0) [0, 2..])
+theta3 q = let t = 1 : intercalate [2] (map (`replicate` 0) [0, 2..])
            in t `compose` q
 
-theta4 q = let t = 1 : (intercalate [2] $ map (flip replicate 0) [0, 2..])
+theta4 q = let t = 1 : intercalate [2] (map (`replicate` 0) [0, 2..])
            in (zipWith (*) t (cycle [1, -1])) `compose` q
 
 -- sumOfSquares = (theta3 z)^2
