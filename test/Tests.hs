@@ -295,7 +295,7 @@ testHurwitzNumbers =
       pint i xs = 0 `prepend` mapf (H.integrate i) xs
       h x y = intY (intY (exp (h x (y * exp x) - 2 * h x y + h x (y * exp (-x)))) / y)
       term10 = unF (h x y) !! 10
-  in term10 @?= (1 / 80640) * x0 * x0 * x0 * x0 * x0 * x0 * x0 * x0 * x1 * x1 + (1 / 6) * x0 * x0 * x0 * x0 * x0 * x0 * x1 * x1 * x1 * x1
+  in term10 @?= (1 / 80640) * x0^8 * x1^2 + (1 / 6) * x0^6 * x1^4
 
 -- iterative logarithm
 testItlog = testGroup "Iterative logarithm"
