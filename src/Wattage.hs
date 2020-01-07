@@ -104,8 +104,8 @@ eval :: Num b => [b] -> b -> b
 eval [] x = 0
 eval (a:as) x = a+x*eval as x
 
+d (F []) = 0
 d (F (_:x)) = F $ zipWith (*) (map fromInteger [1..]) x
-d _ = error "You can only differentiate non-empty lists"
 
 dlist (_:x) = zipWith (*) (map fromInteger [1..]) x
 dlist _ = error "You can only differentiate non-empty lists"
@@ -114,7 +114,32 @@ integrate (F x) = F $ 0 : zipWith (/) x (map fromInteger [1..])
 
 square x = x `convolve` x
 
-newtype Formal a = F { unF :: [a] } deriving (Show)
+newtype Formal a = F { unF :: [a] }
+
+data Position = Initial | NonInitial
+
+instance (Show a, Num a, Eq a, Ord a) => Show (Formal a) where
+    showsPrec _ (F []) = ("0" ++)
+    showsPrec p (F x) = showParen (p >= 6) $ showTerms Initial 0 x where
+        showTerms _ _ [] = error "Shouldn't be showing empty list of terms"
+        showTerms Initial n ([0]) = ("0" ++)
+        showTerms Initial n ([x]) = showTerm n x
+        showTerms NonInitial n ([0]) = id
+        showTerms NonInitial n ([x]) | x < 0 = (" - " ++) . showTerm n (-x)
+        showTerms NonInitial n ([x]) = (" + " ++) . showTerm n x
+        showTerms position n (0 : xs) = showTerms position (n + 1) xs
+        showTerms Initial n (x : xs) = showTerm n x . showTerms NonInitial (n + 1) xs
+        showTerms NonInitial n (x : xs) | x < 0 = (" - " ++) . showTerm n (-x) . showTerms NonInitial (n + 1) xs
+        showTerms NonInitial n (x : xs) = (" + " ++) . showTerm n x . showTerms NonInitial (n + 1) xs
+        showTerm 0 0 = ("0" ++)
+        showTerm 0 x = showsPrec 6 x
+        showTerm 1 1 = ("x" ++)
+        showTerm 1 (-1) = ("- x" ++)
+        showTerm 1 x = showsPrec 6 x . (" * x" ++)
+        showTerm n (-1) = ("- x^" ++) . showsPrec 6 n
+        showTerm n 1 = ("x^" ++) . showsPrec 6 n
+        showTerm n x = showsPrec 6 x . (" * x^" ++) . showsPrec 6 n
+
 
 -- Only good for finite sequences
 instance (Num a, Eq a) => Eq (Formal a) where
@@ -140,14 +165,24 @@ instance (Show r, Eq r, Fractional r) => Fractional (Formal r) where
 
 sqrt' x = 1:rs where rs = map (/ 2) (xs ^- (0 : (rs `convolve` rs)))
                      _:xs = x
+
+-- Test performance. XXX
+-- It may be that the naive approach of summing powers may work
+-- better than some of these differential equation tricks.
 instance (Show r, Eq r, Fractional r) => Floating (Formal r) where
     sqrt (F (1:x)) = F $ sqrt' (1:x)
     sqrt _      = error "Can only find sqrt when leading term is 1"
     exp x      = e where e = 1+integrate (e * d x) -- XXX throws away leading term
     log x      = integrate (d x / x)
-    sin x      = integrate (cos x * d x)
-    cos x      = [1] ... negate (integrate (sin x * d x))
-    asin x      = integrate (d x / sqrt (1-x*x))
+    sin (F []) = F []
+    sin x@(F (0:_))      = integrate (cos x * d x)
+    sin _ = error "Formal power series of sin requires zero first term"
+    cos (F []) = F [1]
+    cos x@(F (0:_))      = [1] ... negate (integrate (sin x * d x))
+    cos _ = error "Formal power series of cos requires first term zero"
+    asin (F []) = F []
+    asin x@(F (0:_))      = integrate (d x / sqrt (1-x*x))
+    asin _ = error "Formal power series of asin requires zero first term"
     atan x      = integrate (d x / (1+x*x))
     acos x      = error "Unable to form power series for acos"
     sinh x      = integrate (cosh x * d x)

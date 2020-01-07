@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 import Prelude hiding (truncate)
 import Poly
 import Wattage as W
@@ -6,6 +8,7 @@ import Multivariate as M
 import Test.Tasty
 import Test.Tasty.HUnit
 import System.Environment
+import Test.Tasty.QuickCheck
 
 main = do
   defaultMain tests
@@ -17,7 +20,72 @@ tests = testGroup "Tests"
       testHypergeometric,
       testHomogeneous,
       testMultivariate,
-      testItlog ]
+      testItlog,
+      testOutput,
+      testFormalProperties ]
+
+testFormalProperties = testGroup "Formal properties" 
+    [ testAddCommutes,
+      testMultiplyCommutes,
+      testSubtraction,
+      testSinAsinProperty,
+      testCosSinProperty,
+      testLogExpProperty ]
+
+-- XXX Should also allow infinite streams.
+instance Arbitrary a => Arbitrary (Formal a) where
+    arbitrary = F <$> arbitrary
+
+testAddCommutes = testProperty "Addition commutes" $ \x y -> (x :: Formal Q) + (y :: Formal Q) == y + x
+
+testMultiplyCommutes = testProperty "Multiplication commutes" $ \x y -> (x :: Formal Q) * (y :: Formal Q) == y * x
+
+testSubtraction = testProperty "Subtraction" $ \x -> (x :: Formal Q) - x == 0
+
+testSinAsinProperty = testProperty "sin . asin == id" $
+    \x -> let y = z * x :: Formal Q
+          in truncate 5 (sin (asin y)) == truncate 5 y
+
+testCosSinProperty = testProperty "cos^2 x + sin^2 x == 1" $
+    \x -> let y = z * x :: Formal Q
+          in truncate 5 (cos y ^ 2 + sin y ^ 2) == 1
+
+testLogExpProperty = testProperty "log . exp == id" $
+    \x -> let y = z * x :: Formal Q
+          in truncate 5 (log (exp y)) == truncate 5 y
+
+testOutput = testGroup "Tests of string representation"
+    [ testCase "Single variable" testSingleVariable
+    ]
+
+testSingleVariable = do
+    show (0 :: Formal Q) @?= "0"
+    show (z - z :: Formal Q) @?= "0"
+    show (z^16 - z^32 - z^16 + z^32 :: Formal Q) @?= "0"
+    show (1 :: Formal Q) @?= "1 % 1"
+    show (z :: Formal Q) @?= "x"
+    show (1 + z :: Formal Q) @?= "1 % 1 + x"
+    show (1 + z^2 :: Formal Q) @?= "1 % 1 + x^2"
+    show (1 - z^2 :: Formal Q) @?= "1 % 1 - x^2"
+    show (1 + 2*z^2 :: Formal Q) @?= "1 % 1 + 2 % 1 * x^2"
+    show (2 + 3*z + 5*z^2 :: Formal Q) @?= "2 % 1 + 3 % 1 * x + 5 % 1 * x^2"
+    show (-1 :: Formal Q) @?= "(-1) % 1"
+    show (-z :: Formal Q) @?= "- x"
+    show (-z^2 :: Formal Q) @?= "- x^2"
+    show (-z^2 - z^3 :: Formal Q) @?= "- x^2 - x^3"
+    show (1 - z :: Formal Q) @?= "1 % 1 - x"
+    show (1 - 2*z :: Formal Q) @?= "1 % 1 - 2 % 1 * x"
+    show (-1 - 2*z :: Formal Q) @?= "(-1) % 1 - 2 % 1 * x"
+    show (-1 - 2*z + 3*z^2 :: Formal Q) @?= "(-1) % 1 - 2 % 1 * x + 3 % 1 * x^2"
+    show (z^10 - z^20 - z^10 :: Formal Q) @?= "- x^20"
+    show (1 + z^20 - z^20 :: Formal Q) @?= "1 % 1"
+    show (-1 + z^20 - z^20 :: Formal Q) @?= "(-1) % 1"
+    show (truncate 6 (sin z) :: Formal Q) @?= "x - 1 % 6 * x^3 + 1 % 120 * x^5"
+    show (truncate 5 (asin z) :: Formal Q) @?= "x + 1 % 6 * x^3"
+    take 33 (show (1 / (1 - z) :: Formal Q)) @?= "1 % 1 + x + x^2 + x^3 + x^4 + x^5"
+    take 33 (show (1 / (1 + z) :: Formal Q)) @?= "1 % 1 - x + x^2 - x^3 + x^4 - x^5"
+    take 27 (show (-z / (1 + z) :: Formal Q)) @?= "- x + x^2 - x^3 + x^4 - x^5"
+    show (1 - z^10 :: Formal Q) @?= "1 % 1 - x^10"
 
 -- Basic functionality
 testBasic = testGroup "Tests of basic functionality"
@@ -294,7 +362,7 @@ testHurwitzNumbers =
       intY = pint 1
       pint i xs = 0 `prepend` mapf (H.integrate i) xs
       h x y = intY (intY (exp (h x (y * exp x) - 2 * h x y + h x (y * exp (-x)))) / y)
-      term10 = unF (h x y) !! 10
+      term10 = W.coefficient 10 (h x y)
   in term10 @?= (1 / 80640) * x0^8 * x1^2 + (1 / 6) * x0^6 * x1^4
 
 -- iterative logarithm

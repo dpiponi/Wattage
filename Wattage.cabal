@@ -81,6 +81,19 @@ executable ex2
       array
   default-language: Haskell2010
 
+executable ex3
+  main-is: ex3.hs
+  other-modules:
+      Paths_Wattage
+  hs-source-dirs:
+      examples
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -fwarn-incomplete-patterns
+  build-depends:
+      Wattage,
+      base >=4.7 && <5,
+      array
+  default-language: Haskell2010
+
 test-suite Wattage-test
   type: exitcode-stdio-1.0
   main-is: Tests.hs
@@ -94,4 +107,5 @@ test-suite Wattage-test
     , base >=4.7 && <5
     , tasty
     , tasty-hunit
+    , tasty-quickcheck
   default-language: Haskell2010
