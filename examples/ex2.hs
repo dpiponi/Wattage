@@ -53,3 +53,9 @@ main = do
 
   -- 6 x0's, 9 x1's, 7 y0's, 8 y1's and 8 y2's
   print (M.coefficient [6, 9, 7, 8, 8] heaps :: Rational)
+
+  -- Note that getting the [1, 1, 100, 0, 0] coefficient, say, can
+  -- take a long time. We're asking for coefficients from raising
+  -- `trivial` to around the power of 100. The code tries to 
+  -- compute lazily but still allocates the data structures. A
+  -- future version may try to do things more sparsely.
