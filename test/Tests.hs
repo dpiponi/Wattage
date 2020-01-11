@@ -2,7 +2,7 @@
 
 import Prelude hiding (truncate)
 import Poly
-import Formal as W
+import Formal as F
 import Homogeneous as H hiding (test)
 import Multivariate as M
 import Test.Tasty
@@ -99,15 +99,15 @@ testBasic = testGroup "Tests of basic functionality"
     ]
 
 testCoefficients = do
-    W.coefficient 0 1 @?= 1
-    W.coefficient 1 1 @?= 0
-    W.coefficient 0 z @?= 0
-    W.coefficient 1 z @?= 1
-    W.coefficient 2 z @?= 0
-    W.coefficient 0 (z * z) @?= 0
-    W.coefficient 1 (z * z) @?= 0
-    W.coefficient 2 (z * z) @?= 1
-    W.coefficient 3 (z * z) @?= 0
+    F.coefficient 0 1 @?= 1
+    F.coefficient 1 1 @?= 0
+    F.coefficient 0 z @?= 0
+    F.coefficient 1 z @?= 1
+    F.coefficient 2 z @?= 0
+    F.coefficient 0 (z * z) @?= 0
+    F.coefficient 1 (z * z) @?= 0
+    F.coefficient 2 (z * z) @?= 1
+    F.coefficient 3 (z * z) @?= 0
 
 testFiniteConvolution00 = [] `fconvolve` []  @?= []
 testFiniteConvolution01 = [] `fconvolve` [1]  @?= []
@@ -362,7 +362,7 @@ testHurwitzNumbers =
       intY = pint 1
       pint i xs = 0 `prepend` mapf (H.integrate i) xs
       h x y = intY (intY (exp (h x (y * exp x) - 2 * h x y + h x (y * exp (-x)))) / y)
-      term10 = W.coefficient 10 (h x y)
+      term10 = F.coefficient 10 (h x y)
   in term10 @?= (1 / 80640) * x0^8 * x1^2 + (1 / 6) * x0^6 * x1^4
 
 -- iterative logarithm

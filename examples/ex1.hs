@@ -1,4 +1,4 @@
-import Formal as W
+import Formal as F
 import Homogeneous as H
 import Multivariate as M
 

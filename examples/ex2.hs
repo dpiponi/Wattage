@@ -1,6 +1,6 @@
 -- Heaps of pieces
 
-import Formal as W
+import Formal as F
 import Multivariate as M
 
 main = do
