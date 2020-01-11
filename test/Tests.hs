@@ -204,7 +204,12 @@ testHypergeometric = testGroup "Hypergeometric tests"
       testCase "exp is hypergeometric" testExpHypergeometric,
       testCase "Clausen's formula" testClausenFormula,
       testCase "Kummer's relation" testKummerRelation,
-      testCase "Identity 3" testIdentity3]
+      testCase "Identity 3" testIdentity3,
+      testCase "theta identities" testThetaIdentities]
+
+testThetaIdentities = do
+    truncate 20 ((theta3 (z^2))^2 :: Formal Q) @?= truncate 20 (((theta3 z)^2 + (theta4 z)^2) / 2)
+    truncate 20 ((theta4 (z^2))^2 :: Formal Q) @?= truncate 20 (sqrt ((theta3 z)^2 * (theta4 z)^2))
 
 testDilogarithmHypergeometric =
     truncate 10 (dilog z :: Formal Q) @?= truncate 10 (z*hypergeometric [1, 1, 1] [2, 2] z)

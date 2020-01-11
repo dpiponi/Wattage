@@ -301,14 +301,14 @@ dilog x = integrate $ -log (1-x)*d x/x
 
 -- Theta constants
 -- θ₂(z) = z^(1/4)*modifiedTheta2 z
-modifiedTheta2 q = let t = 2 : intercalate [2] (map (`replicate` 0) [1, 3..])
-                   in t `compose` q
+modifiedTheta2 (F q) = let t = 2 : intercalate [2] (map (`replicate` 0) [1, 3..])
+                       in F $ t `compose` q
 
-theta3 q = let t = 1 : intercalate [2] (map (`replicate` 0) [0, 2..])
-           in t `compose` q
+theta3 (F q) = let t = 1 : intercalate [2] (map (`replicate` 0) [0, 2..])
+               in F $ t `compose` q
 
-theta4 q = let t = 1 : intercalate [2] (map (`replicate` 0) [0, 2..])
-           in zipWith (*) t (cycle [1, -1]) `compose` q
+theta4 (F q) = let t = 1 : intercalate [2] (map (`replicate` 0) [0, 2..])
+               in F $ zipWith (*) t (cycle [1, -1]) `compose` q
 
 -- sumOfSquares = (theta3 z)^2
 
