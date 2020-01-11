@@ -1,6 +1,6 @@
 module Multivariate where
 
-import Wattage as W
+import Formal as W
 import Homogeneous as H
 
 type Multivariate a = Formal (Homogeneous a)

@@ -1,4 +1,4 @@
-import Wattage as W
+import Formal as W
 import Homogeneous as H
 import Multivariate as M
 

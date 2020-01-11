@@ -2,7 +2,7 @@
 
 import Prelude hiding (truncate)
 import Poly
-import Wattage as W
+import Formal as W
 import Homogeneous as H hiding (test)
 import Multivariate as M
 import Test.Tasty

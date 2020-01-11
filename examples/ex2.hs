@@ -1,6 +1,6 @@
 -- Heaps of pieces
 
-import Wattage as W
+import Formal as W
 import Multivariate as M
 
 main = do

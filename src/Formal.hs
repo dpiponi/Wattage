@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeOperators #-}
 
-module Wattage where
+module Formal where
 
 import Poly
 

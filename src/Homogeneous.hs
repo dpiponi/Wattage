@@ -16,7 +16,7 @@ import Control.Monad.ST
 import Data.Ratio
 import Data.Maybe
 import Debug.Trace
-import Wattage
+import Formal
 
 type Z = Integer
 
