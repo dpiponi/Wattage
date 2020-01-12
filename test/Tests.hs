@@ -201,7 +201,9 @@ testTribonacciAnnihilator =
 testHypergeometric = testGroup "Hypergeometric tests" 
     [ testCase "dilogarithm is hypergeometric" testDilogarithmHypergeometric,
       testCase "1/(1-z)^a is hypergeometric" testRationalHypergeometric,
+      testCase "asin is hypergeometric" testAsinHypergeometric,
       testCase "exp is hypergeometric" testExpHypergeometric,
+      testCase "log(1+x) is hypergeometric" testLogHypergeometric,
       testCase "Clausen's formula" testClausenFormula,
       testCase "Kummer's relation" testKummerRelation,
       testCase "Identity 3" testIdentity3,
@@ -212,14 +214,20 @@ testThetaIdentities = do
     truncate 20 ((theta4 (z^2))^2 :: Formal Q) @?= truncate 20 (sqrt ((theta3 z)^2 * (theta4 z)^2))
 
 testDilogarithmHypergeometric =
-    truncate 10 (dilog z :: Formal Q) @?= truncate 10 (z*hypergeometric [1, 1, 1] [2, 2] z)
+    truncate 20 (dilog z :: Formal Q) @?= truncate 20 (z*hypergeometric [1, 1, 1] [2, 2] z)
 
 testRationalHypergeometric =
     let a = 1/3 :: Q
-    in truncate 10 (hypergeometric [a] [] z) @?= truncate 10 (exp (log (1-z)*(-fromRational a)))
+    in truncate 20 (hypergeometric [a] [] z) @?= truncate 20 (exp (log (1-z)*(-fromRational a)))
+
+testAsinHypergeometric =
+    truncate 20 (asin z) @?= truncate 20 (z * f21 (1 / 2) (1 / 2) (3 / 2) (z ^ 2))
+
+testLogHypergeometric =
+    truncate 20 (log (1 + z)) @?= truncate 20 (z * f21 1 1 2 (-z))
 
 testExpHypergeometric =
-    truncate 10 (hypergeometric [] [] z) @?= truncate 10 (exp z)
+    truncate 20 (hypergeometric [] [] z) @?= truncate 20 (exp z)
 
 testIdentity3 =
     let a = 1/3
@@ -228,14 +236,14 @@ testIdentity3 =
         term1 = hypergeometric [] [a+1/2] (z^2/16)
         term2 = mapf ((1-(2*a)/b)/(2*(2*a+1)) *) (z*hypergeometric [] [a+3/2] (z^2/16)) :: Formal Q
         rhs = term1 - term2
-    in truncate 10 lhs @?= truncate 10 rhs
+    in truncate 20 lhs @?= truncate 20 rhs
 
 -- http://mathworld.wolfram.com/KummersRelation.html
 testKummerRelation =
   let a = 1/3
       b = 1/5
       u = f21 (2*a) (2*b) (a+b+1/2) z - f21 a b (a+b+1/2) (4*z*(1-z)) :: Formal Q
-  in truncate 10 u @?= 0
+  in truncate 20 u @?= 0
 
 -- https://en.wikipedia.org/wiki/Clausen%27s_formula
 testClausenFormula =
@@ -244,7 +252,7 @@ testClausenFormula =
      c = 1/4
      s = 1/5
      u = hypergeometric [2*c-2*s-1,2*s,c-1/2] [2*c-1,c] z - (f21 (c-s-1/2) s c z)^2 :: Formal Q
- in truncate 10 u @?= 0
+ in truncate 20 u @?= 0
 
 -- Homogeneous polynomial tests
 testHomogeneous = testGroup "Homogeneous polynomial tests"
