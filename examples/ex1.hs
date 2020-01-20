@@ -2,6 +2,11 @@ import Formal as F
 import Homogeneous as H
 import Multivariate as M
 
+lambertW = do
+  let x = F.var :: Formal Q
+  let u = [0, 1] ... F.integrate (1/(x+exp u))
+  print $ F.truncate 15 u
+
 -- Evaluating series given by eq (10), p.3 of
 -- CLASSICAL HURWITZ NUMBERS AND RELATED COMBINATORICS
 -- https://people.mpim-bonn.mpg.de/zagier/files/tex/ClassicalHurwitz/HurwitzRevised.pdf
@@ -10,9 +15,13 @@ import Multivariate as M
 -- Enumerative Gromov–Witten Invariants
 -- https://arxiv.org/pdf/1605.07473.pdf
 
-main = do
+gromov_witten =  do
   let x = M.var 0 :: Multivariate Q
   let y = M.var 1
   let intY = M.integrate 1
   let h x y = intY (intY (exp (h x (y * exp x) - 2 * h x y + h x (y * exp (-x)))) / y)
   mapM_ print $ take 12 $ unF $ h x y
+
+main = do
+  lambertW
+  gromov_witten
