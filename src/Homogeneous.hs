@@ -376,7 +376,7 @@ instance (Eq a, Show a, Num a) => Num (Homogeneous a) where
   fromInteger i = H 0 1 $ listArray' (0, 0) [fromInteger i]
   negate Zero = Zero
   negate (H d n c) = H d n $ fmap negate c
-  signum _ = error "No signum for Homogeneous"
+  signum _ = 1 -- Not clear what this should be
   abs _ = error "No abs for Homogeneous"
 
 -- Should gather, not scatter surely XXX
