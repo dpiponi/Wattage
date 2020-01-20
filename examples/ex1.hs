@@ -24,7 +24,7 @@ gromov_witten =  do
   let y = M.var 1
   let intY = M.integrate 1
   let h x y = intY (intY (exp (h x (y * exp x) - 2 * h x y + h x (y * exp (-x)))) / y)
-  mapM_ print $ take 12 $ unF $ h x y
+  print $ F.truncate 12 $ unM $ h x y
 
 main = do
   lambertW

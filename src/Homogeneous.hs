@@ -171,38 +171,6 @@ makeIndexHomogeneous d n f =
     H d n $ array' (0, hdim n d -1) [(i, f i is) |
                                        (i, is) <- enumerate (allOfDegree d n)]
 
--- allSplits :: Int -> Int -> Exponent -> [(Exponent, Exponent)]
--- allSplits _ _ [] = error "Can only split a non-empty exponent list"
--- allSplits d0 d1 [n] =
---   if n == d0 + d1
---     then [([d0], [d1])]
---     else []
--- allSplits d0 d1 (i : is) = do
---   let lower = max 0 (i - d1)
---   let upper = min i d0
---   j0 <- [upper, upper - 1 .. lower]
---   let j1 = i - j0
---   (ks, ls) <- allSplits (d0 - j0) (d1 - j1) is
---   return (j0 : ks, j1 : ls)
-
--- withAllSplits :: (Exponent -> Int -> Exponent -> Int -> a) -> Int -> Int -> Int -> Int -> Int -> Int -> Exponent -> [a]
--- withAllSplits f _ _ _ _ _ _ [] = error "Can only split a non-empty exponent list"
--- withAllSplits f addr0 addr1 n0 n1 d0 d1 [d] =
---   if d == d0 + d1
---     then [f [d0] addr0 [d1] addr1]
---     else []
--- withAllSplits f addr0 addr1 n0 n1 d0 d1 (i : is) = do
---   let lower = max 0 (i - d1)
---   let upper = min i d0
---   j0 <- [upper, upper - 1 .. lower]
---   let j1 = i - j0
---   let new_addr0 = addr0+hdim (d0-j0) (n0-1)
---   let new_addr1 = addr1+hdim (d1-j1) (n1-1)
---   withAllSplits (\x addrx y addry ->
---     let k0 = j0 : x
---         k1 = j1 : y
---     in f k0 new_addr0 k1 new_addr1) new_addr0 new_addr1 (n0-1) (n1-1) (d0 - j0) (d1 - j1) is
-
 withAllSplits' :: Int -> Int -> Int -> Int -> Int -> Int -> Exponent -> (Int -> Int -> a) -> [a]
 withAllSplits' _ _ _ _ _ _ [] _ = error "Can only split a non-empty exponent list"
 withAllSplits' addr0 addr1 n0 n1 d0 d1 [d] f =

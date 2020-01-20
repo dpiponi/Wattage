@@ -373,9 +373,9 @@ testHurwitzNumbers =
       x = z0
       y = z1
       intY = pint 1
-      pint i xs = 0 `prepend` mapf (H.integrate i) xs
+      pint i (M xs) = M $ 0 `prepend` fmap (H.integrate i) xs
       h x y = intY (intY (exp (h x (y * exp x) - 2 * h x y + h x (y * exp (-x)))) / y)
-      term10 = F.coefficient 10 (h x y)
+      term10 = F.coefficient 10 (unM $ h x y)
   in term10 @?= (1 / 80640) * x0^8 * x1^2 + (1 / 6) * x0^6 * x1^4
 
 -- iterative logarithm

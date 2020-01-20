@@ -152,8 +152,11 @@ instance (Num a, Eq a) => Eq (Formal a) where
 mapf :: (a -> b) -> Formal a -> Formal b
 mapf f (F xs) = F $ map f xs
 
+instance Functor Formal where
+  fmap f (F xs) = F $ fmap f xs
+
 instance (Eq r, Num r) => Num (Formal r) where
-    F x+F y  = F $ x ^+ y
+    F x + F y  = F $ x ^+ y
     F x - F y  = F $ x ^- y
     F x * F y = F $ x `convolve` y
     fromInteger x      = F [fromInteger x]
