@@ -37,4 +37,26 @@ d i (M xs) = M $ 0 `prepend` fmap (hint i) xs
 --     fromRational x      = M (fromRational x)
 
 instance (Show a, Num a, Eq a) => Show (Multivariate a) where
-  show (M x) = show x
+--   show (M x) = show x
+    showsPrec _ (M (F [])) = ("0" ++)
+    showsPrec p (M (F x)) = showParen (p >= 6) $ showTerms Initial 0 x where
+        showTerms _ _ [] = error "Shouldn't be showing empty list of terms"
+        showTerms Initial n ([0]) = ("0" ++)
+        showTerms Initial n ([x]) = showTerm n x
+        showTerms NonInitial n ([0]) = id
+        showTerms NonInitial n ([x]) | signum x == -1 = (" - " ++) . showTerm n (-x)
+        showTerms NonInitial n ([x]) = (" + " ++) . showTerm n x
+        showTerms position n (0 : xs) = showTerms position (n + 1) xs
+        showTerms Initial n (x : xs) = showTerm n x . showTerms NonInitial (n + 1) xs
+        showTerms NonInitial n (x : xs) | signum x == -1 =
+                (" - " ++) . showTerm n (-x) . showTerms NonInitial (n + 1) xs
+        showTerms NonInitial n (x : xs) =
+                (" + " ++) . showTerm n x . showTerms NonInitial (n + 1) xs
+        showTerm 0 0 = ("0" ++)
+        showTerm 0 x = showsPrec 6 x
+        showTerm 1 1 = ("x" ++)
+        showTerm 1 (-1) = ("- x" ++)
+        showTerm 1 x = showsPrec 6 x . (" * x" ++)
+        showTerm n (-1) = ("- x^" ++) . showsPrec 6 n
+        showTerm n 1 = ("x^" ++) . showsPrec 6 n
+        showTerm n x = showsPrec 6 x . (" * x^" ++) . showsPrec 6 n

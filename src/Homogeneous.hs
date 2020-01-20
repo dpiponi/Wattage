@@ -91,19 +91,22 @@ enumerate :: [a] -> [(Int, a)]
 enumerate = zip [0 ..]
 
 showVar :: Int -> Int -> String
-showVar i k = "x" ++ subscript i ++ superscript k
+showVar i 1 = "x" ++ subscript i
+-- showVar i k = "x" ++ subscript i ++ superscript k
+showVar i k = "x" ++ subscript i ++ "^" ++ show k
 
 showTerm :: (Show a, Num a, Eq a) => a -> Exponent -> String
-showTerm c0 js = showsPrec 8 c0 $ concat [showVar i j |
+showTerm c0 js = showsPrec 8 c0 $ " * " ++ L.intercalate " * " [showVar i j |
                                           (i, j) <- enumerate js, j /= 0]
 
 instance (Show a, Num a, Eq a) => Show (Homogeneous a) where
   showsPrec p Zero = showString "0"
-  showsPrec p (H d n c) = showParen (p > 5) $ showString $ "<" ++ L.intercalate "+" [
-    showTerm c0 js |
-      (i, js) <- enumerate (allOfDegree d n),
-      let c0 = c A.! i,
-      c0 /= 0] ++ ">"
+  showsPrec p (H d n c) = showParen (p > 5) $ showString $
+    let terms = [(c0,  js) |
+                  (i, js) <- enumerate (allOfDegree d n),
+                  let c0 = c A.! i,
+                  c0 /= 0]
+    in L.intercalate " + " [showTerm c0 js | (c0, js) <- terms]
 
 instance (Fractional a, Show a, Eq a) => Fractional (Homogeneous a) where
   fromRational i = H 0 1 $ listArray' (0, 0) [fromRational i]
