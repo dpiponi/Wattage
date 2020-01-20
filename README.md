@@ -29,7 +29,8 @@ From `ex2`:
                     + x0*y2 + y0*x1 + y0*y1 + y0*y2 + y1*y2
                     - y0*y1*y2
 
-    let heaps = 1 / trivial```
+    let heaps = 1 / trivial
+```
 
 An example of use. Say we weant to find `w(z)` where `w*exp(w) == z`. This is Lagrange reversion:
 
