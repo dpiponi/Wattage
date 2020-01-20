@@ -5,7 +5,8 @@ module Multivariate where
 import Formal as F
 import Homogeneous as H
 
-newtype Multivariate a = M { unM :: Formal (Homogeneous a) } deriving (Show, Num, Fractional, Floating)
+newtype Multivariate a = M { unM :: Formal (Homogeneous a) }
+  deriving (Num, Fractional, Floating)
 
 var :: (Show a, Num a) => Int -> Multivariate a
 var i = M (F [Zero, make_var i (i + 1)])
@@ -14,10 +15,10 @@ coefficient :: (Eq a, Num a, Show a) => Exponent -> Multivariate a -> a
 coefficient is (M f) = H.coefficient is (F.coefficient (sum is) f)
 
 integrate :: (Num a, Eq a, Show a, Fractional a) => Int -> Multivariate a -> Multivariate a
-integrate i (M xs) = M $ 0 `prepend` mapf (hint i) xs
+integrate i (M xs) = M $ 0 `prepend` fmap (hint i) xs
 
 d :: (Num a, Eq a, Show a, Fractional a) => Int -> Multivariate a -> Multivariate a
-d i (M xs) = M $ 0 `prepend` mapf (hint i) xs
+d i (M xs) = M $ 0 `prepend` fmap (hint i) xs
 
 -- mprepend :: Homogeneous a -> Multivariate a -> Multivariate a
 -- mprepend x (M ys) = M (x `prepend` ys)
@@ -34,3 +35,6 @@ d i (M xs) = M $ 0 `prepend` mapf (hint i) xs
 -- instance (Show r, Eq r, Num r, Fractional r) => Fractional (Multivariate r) where
 --     M x / M y  = M $ x / y
 --     fromRational x      = M (fromRational x)
+
+instance (Show a, Num a, Eq a) => Show (Multivariate a) where
+  show (M x) = show x
