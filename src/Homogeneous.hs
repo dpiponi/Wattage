@@ -91,13 +91,29 @@ enumerate :: [a] -> [(Int, a)]
 enumerate = zip [0 ..]
 
 showVar :: Int -> Int -> String
-showVar i 1 = "x" ++ subscript i
+showVar i 1 = "x" ++ show i
+-- showVar i 1 = "x" ++ subscript i
 -- showVar i k = "x" ++ subscript i ++ superscript k
-showVar i k = "x" ++ subscript i ++ "^" ++ show k
+-- showVar i k = "x" ++ subscript i ++ "^" ++ show k
+showVar i k = "x" ++ show i ++ "^" ++ show k
 
 showTerm :: (Show a, Num a, Eq a) => a -> Exponent -> String
-showTerm c0 js = showsPrec 8 c0 $ " * " ++ L.intercalate " * " [showVar i j |
+showTerm 1 js = L.intercalate " * " [showVar i j |
                                           (i, j) <- enumerate js, j /= 0]
+showTerm (-1) js = "- " ++ L.intercalate " * " [showVar i j |
+                                          (i, j) <- enumerate js, j /= 0]
+showTerm c0 js | signum c0 == -1 = ("- "  ++) $ showsPrec 8 (- c0) $ " * " ++ L.intercalate " * " [showVar i j |
+                                          (i, j) <- enumerate js, j /= 0]
+showTerm c0 js = showsPrec 8 c0 $ " * " ++ L.intercalate " * " [showVar i j |
+                                              (i, j) <- enumerate js, j /= 0]
+
+showTerms :: (Show a, Num a, Eq a) => Position -> [(a, Exponent)] -> String
+showTerms Initial [] = "0"
+showTerms Initial ((c, js) : xs) | signum c == -1 = showTerm c js ++ showTerms NonInitial xs
+showTerms Initial ((c, js) : xs) = showTerm c js ++ showTerms NonInitial xs
+showTerms NonInitial [] = ""
+showTerms NonInitial ((x, js) : xs) | signum x == -1 = " - " ++ showTerm (-x) js ++ showTerms NonInitial xs
+showTerms NonInitial ((x, js) : xs) = " + " ++ showTerm x js ++ showTerms NonInitial xs
 
 instance (Show a, Num a, Eq a) => Show (Homogeneous a) where
   showsPrec p Zero = showString "0"
@@ -106,7 +122,8 @@ instance (Show a, Num a, Eq a) => Show (Homogeneous a) where
                   (i, js) <- enumerate (allOfDegree d n),
                   let c0 = c A.! i,
                   c0 /= 0]
-    in L.intercalate " + " [showTerm c0 js | (c0, js) <- terms]
+    in showTerms Initial terms
+--     in L.intercalate " + " [showTerm c0 js | (c0, js) <- terms]
 
 instance (Fractional a, Show a, Eq a) => Fractional (Homogeneous a) where
   fromRational i = H 0 1 $ listArray' (0, 0) [fromRational i]

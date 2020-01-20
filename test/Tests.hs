@@ -2,13 +2,17 @@
 
 import Prelude hiding (truncate)
 import Poly
-import Formal as F
+import Formal as F hiding ((:+), (:-), (:*))
 import Homogeneous as H hiding (test)
 import Multivariate as M
 import Test.Tasty
 import Test.Tasty.HUnit
 import System.Environment
 import Test.Tasty.QuickCheck
+
+infixl 6 :+
+infixl 6 :-
+infixl 7 :*
 
 main = do
   defaultMain tests
@@ -55,8 +59,12 @@ testLogExpProperty = testProperty "log . exp == id" $
           in truncate 5 (log (exp y)) == truncate 5 y
 
 testOutput = testGroup "Tests of string representation"
-    [ testCase "Single variable" testSingleVariable
+    [ testCase "Single variable" testSingleVariable,
+      testCase "Homogeneous polynomials" testHomogeneousOut
     ]
+
+-- This is used to ensure precedence rules are correct for Show
+data Expr a = Const a | a :+ a | a :- a | a :* a deriving Show
 
 testSingleVariable = do
     show (0 :: Formal Q) @?= "0"
@@ -86,6 +94,18 @@ testSingleVariable = do
     take 33 (show (1 / (1 + z) :: Formal Q)) @?= "1 % 1 - x + x^2 - x^3 + x^4 - x^5"
     take 27 (show (-z / (1 + z) :: Formal Q)) @?= "- x + x^2 - x^3 + x^4 - x^5"
     show (1 - z^10 :: Formal Q) @?= "1 % 1 - x^10"
+
+testHomogeneousOut = do
+  let x0 = H.var 0 :: Homogeneous Q
+  let x1 = H.var 1 :: Homogeneous Q
+  let x2 = H.var 2 :: Homogeneous Q
+  show Zero @?= "0"
+  show x0 @?= "x0"
+  show (x0 + x1) @?= "x0 + x1"
+  show (x0 - x1) @?= "x0 - x1"
+  show (- x0) @?= "- x0"
+  show (-2 * x0) @?= "- (2 % 1) * x0"
+--   show (x0 :+ x0) @?= "x0 :+ x0"
 
 -- Basic functionality
 testBasic = testGroup "Tests of basic functionality"
