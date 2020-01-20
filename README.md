@@ -9,6 +9,8 @@ See `examples/` for examples for things like:
   * `ex2`: computing numbers of heaps of tetris-like pieces
   * `ex3`: counting numbers of walks on lattices
 
+From `ex2`:
+
   ```haskell
     -- |  □| 
     -- |  □| y2
@@ -28,4 +30,3 @@ See `examples/` for examples for things like:
                     - y0*y1*y2
 
     let heaps = 1 / trivial
-    ```
