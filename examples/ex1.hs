@@ -2,10 +2,14 @@ import Formal as F
 import Homogeneous as H
 import Multivariate as M
 
+-- Some definitions that make use of self-reference
+-- https://en.wikipedia.org/wiki/Lambert_W_function
+
 lambertW = do
   let x = F.var :: Formal Q
-  let u = [0, 1] ... F.integrate (1/(x+exp u))
+  let u = [0, 1] ... F.integrate (1 / (x + exp u))
   print $ F.truncate 15 u
+  print $ F.truncate 15 $ inverse $ (x * exp x)
 
 -- Evaluating series given by eq (10), p.3 of
 -- CLASSICAL HURWITZ NUMBERS AND RELATED COMBINATORICS
