@@ -1,4 +1,10 @@
 # Wattage
-A small library for working with formal power series
+A small library for working with formal power series.
+Supports both univariate and multivariate power series.
+Multivariate power series are basically univariate power series where the coefficient of xⁿ is a homogeneous polynomial of total degree n.
 
-This is just a placeholder for now. I'll get it into shape as a proper library as time permits.
+See `examples/` for examples for things like:
+
+  * `ex1`: computing Gromov-Witten invariants
+  * `ex2`: computing numbers of heaps of tetris-like pieces
+  * `ex3`: counting numbers of walks on lattices
