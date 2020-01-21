@@ -409,3 +409,5 @@ coefficient :: (Eq a, Num a) => Int -> Formal a -> a
 coefficient _ (F []) = 0
 coefficient 0 (F (x : _)) = x
 coefficient i (F (x : xs)) = coefficient (i - 1) (F xs)
+
+

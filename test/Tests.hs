@@ -105,8 +105,9 @@ testHomogeneousOut = do
   show (x0 - x1) @?= "x0 - x1"
   show (- x0) @?= "- x0"
   show (-2 * x0) @?= "- (2 % 1) * x0"
---   show (x0 :+ x0) @?= "x0 :+ x0"
---   show (x0 :* x0) @?= "x0 :* x0"
+  show (x0 :+ x0) @?= "x0 :+ x0"
+  show (x0 :* x1) @?= "x0 :* x1"
+  show ((x0 + x1) :* (x0 + x1)) @?= "(x0 + x1) :* (x0 + x1)"
 
 -- Basic functionality
 testBasic = testGroup "Tests of basic functionality"

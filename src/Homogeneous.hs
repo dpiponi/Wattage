@@ -117,13 +117,11 @@ showTerms NonInitial ((x, js) : xs) = " + " ++ showTerm x js ++ showTerms NonIni
 
 instance (Show a, Num a, Eq a) => Show (Homogeneous a) where
   showsPrec p Zero = showString "0"
-  showsPrec p (H d n c) = showParen (p > 6) $ showString $
-    let terms = [(c0,  js) |
-                  (i, js) <- enumerate (allOfDegree d n),
-                  let c0 = c A.! i,
-                  c0 /= 0]
-    in showTerms Initial terms
---     in L.intercalate " + " [showTerm c0 js | (c0, js) <- terms]
+--   showPrec p x h | countTerms h == 1 = 
+  showsPrec p h =
+    let terms = nonZeroTerms h
+        precedence = if length terms == 1 then 8 else 7
+    in showParen (p > precedence) $ showString $ showTerms Initial (nonZeroTerms h)
 
 instance (Fractional a, Show a, Eq a) => Fractional (Homogeneous a) where
   fromRational i = H 0 1 $ listArray' (0, 0) [fromRational i]
@@ -194,9 +192,12 @@ makeIndexHomogeneous d n f =
     H d n $ array' (0, hdim n d -1) [(i, f i is) |
                                        (i, is) <- enumerate (allOfDegree d n)]
 
-toListHomogeneous :: Homogeneous a -> [(Exponent, a)]
+toListHomogeneous :: Homogeneous a -> [(a, Exponent)]
 toListHomogeneous Zero = []
-toListHomogeneous (H n d cs) = zip (allOfDegree n d) (A.elems cs)
+toListHomogeneous (H n d cs) = zip (A.elems cs) (allOfDegree n d)
+
+nonZeroTerms :: (Num a, Eq a) => Homogeneous a -> [(a, Exponent)]
+nonZeroTerms = filter (\(c, _) -> c /= 0) . toListHomogeneous
 
 withAllSplits' :: Int -> Int -> Int -> Int -> Int -> Int -> Exponent -> (Int -> Int -> a) -> [a]
 withAllSplits' _ _ _ _ _ _ [] _ = error "Can only split a non-empty exponent list"
