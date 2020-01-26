@@ -1,6 +1,7 @@
 import Formal as F
 import Homogeneous as H
 import Multivariate as M
+import Data.Function.Memoize
 
 -- Some definitions that make use of self-reference
 -- https://en.wikipedia.org/wiki/Lambert_W_function
@@ -26,6 +27,20 @@ gromov_witten =  do
   let h x y = intY (intY (exp (h x (y * exp x) - 2 * h x y + h x (y * exp (-x)))) / y)
   print $ F.truncate 12 $ unM $ h x y
 
+x :: Formal Q
+x = F.var
+
+c :: Int -> Formal Q
+c 1 = 1
+c d0 = let d = fromIntegral d0
+  in 1 / (d * d * (d - 1)) * sum [
+      k * (d-k) * (d-k) * (exp (k * x) - 2 + exp (-k * x)) * c' k0 * c' (d0 - k0) |
+      k0 <- [1 .. d0-1::Int],
+      let k = fromIntegral k0]
+c' = memoize c
+
+
 main = do
+  print $ F.truncate 20 $ c 4
   lambertW
   gromov_witten

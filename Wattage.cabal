@@ -52,7 +52,8 @@ executable ex1
   build-depends:
       Wattage,
       base >=4.7 && <5,
-      array
+      array,
+      memoize
   default-language: Haskell2010
 
 executable ex2
