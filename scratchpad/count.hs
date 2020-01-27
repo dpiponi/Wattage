@@ -71,6 +71,7 @@ hurwitz m mu =
 --   in ps
   in (fromIntegral (length ps) / fromIntegral (product [1 .. n]))
 
+-- Count # ways to get identity with m transpositions
 hurwitz'' :: Z -> Z -> Q
 hurwitz'' m n =
   let ps = (do
@@ -82,6 +83,7 @@ hurwitz'' m n =
   in (fromIntegral (length ps) / fromIntegral (product [1 .. n]))
 
 -- hurwitz :: Z -> [Z] -> Q
+-- Count # ways to get parition mu with m transpositions
 hurwitz' m mu =
   let n = sum mu
       ps = (do
