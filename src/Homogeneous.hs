@@ -166,6 +166,8 @@ x2 = make_var 2 3 :: Homogeneous Rational
 -- XXX Could be optimised maybe
 upgrade :: (Show a, Num a) => Int -> Homogeneous a -> Homogeneous a
 upgrade n Zero = Zero
+upgrade n (H _ n0 _) | n < n0 = error "Trying to lower number of variables in homogeneous polynomial"
+upgrade n h@(H _ n0 _) | n == n0 = h
 upgrade n1 (H d n0 c0) =
   let s0 = hdim n0 d -- pochhammer n0 d `div` fact d
       s1 = hdim n1 d -- pochhammer n1 d `div` fact d

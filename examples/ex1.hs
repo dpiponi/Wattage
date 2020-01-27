@@ -2,6 +2,8 @@ import Formal as F
 import Homogeneous as H
 import Multivariate as M
 import Data.Function.Memoize
+import Data.Array as A
+import Debug.Trace
 
 -- Some definitions that make use of self-reference
 -- https://en.wikipedia.org/wiki/Lambert_W_function
@@ -26,6 +28,8 @@ gromov_witten =  do
   let intY = M.integrate 1
   let h x y = intY (intY (exp (h x (y * exp x) - 2 * h x y + h x (y * exp (-x)))) / y)
   print $ F.truncate 12 $ unM $ h x y
+--   print ""
+--   print $ F.truncate 14 $ unM $ exp (h x y)
 
 x :: Formal Q
 x = F.var
@@ -39,8 +43,15 @@ c d0 = let d = fromIntegral d0
       let k = fromIntegral k0]
 c' = memoize c
 
+tt x = trace (show x) x
 
 main = do
-  print $ F.truncate 20 $ c 4
-  lambertW
-  gromov_witten
+--   print $ F.truncate 5 $ c' 2
+--   print $ F.truncate 5 $ unM $ combine $ [exp (k * x) :: Formal Q | k0 <- [0..], let k = fromIntegral k0]
+--   print $ combine $ [c' k :: Formal Q | k0 <- [0..], let k = fromIntegral k0]
+  let h = combine $ [c' k | k <- [0..]]
+  print $ F.truncate 20 $ unM $ exp h
+--   print $ F.truncate 20 $ c 4
+--   print $ F.truncate 5 $ unM $ combine [c d | d <- [0..]]
+--   lambertW
+--   gromov_witten
