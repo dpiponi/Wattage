@@ -46,11 +46,14 @@ c' = memoize c
 tt x = trace (show x) x
 
 main = do
+  print "---"
 --   print $ F.truncate 5 $ c' 2
 --   print $ F.truncate 5 $ unM $ combine $ [exp (k * x) :: Formal Q | k0 <- [0..], let k = fromIntegral k0]
 --   print $ combine $ [c' k :: Formal Q | k0 <- [0..], let k = fromIntegral k0]
-  let h = combine $ [c' k | k <- [0..]]
-  print $ F.truncate 20 $ unM $ exp h
+  let h = ogf $ [c' k | k <- [0..]]
+  print $ M.truncate 20 $ h
+  print "---"
+  print $ M.truncate 20 $ exp h
 --   print $ F.truncate 20 $ c 4
 --   print $ F.truncate 5 $ unM $ combine [c d | d <- [0..]]
 --   lambertW

@@ -62,18 +62,13 @@ instance (Show a, Num a, Eq a) => Show (Multivariate a) where
         showTerm n 1 = ("x^" ++) . showsPrec 6 n
         showTerm n x = showsPrec 6 x . (" * x^" ++) . showsPrec 6 n
 
-homoCoefficients :: (Show a, Num a) => Int -> Int -> Homogeneous a -> [a]
-homoCoefficients n d h@(H d' n' cs) | n' < n = homoCoefficients n d (upgrade n h)
-homoCoefficients n d (H d' n' cs) = elems cs
-homoCoefficients n d Zero = take (hdim' n d) (repeat 0)
-
 extractCoeffs :: Int -> Multivariate Q -> [[Q]]
 extractCoeffs n (M (F xs)) = 
-  let extractCoeffs' n d (x:xs) = homoCoefficients n d x : extractCoeffs' n (d + 1) xs
+  let extractCoeffs' n d (x:xs) = allCoefficients n d x : extractCoeffs' n (d + 1) xs
   in extractCoeffs' n 0 (xs ++ repeat Zero)
 
-sh :: [[a]] -> [[a]]
-sh (x : xs) = [head x] : zipWith (:) (tail x) (sh xs)
+staggeredColumns :: [[a]] -> [[a]]
+staggeredColumns (x : xs) = [head x] : zipWith (:) (tail x) (staggeredColumns xs)
 
 -- combine :: [Formal Q] -> Multivariate Q
 -- combine xs =
@@ -81,27 +76,20 @@ sh (x : xs) = [head x] : zipWith (:) (tail x) (sh xs)
 --       cs = sh ys
 --   in M $ F [H d 2 (listArray (0, d) a) | (d, a) <- zip [0 ..] cs]
 
-makeH n d bs = 
-  let s = hdim' n d
-  in if s /= length (bs)
-    then error ("Wrong # of coefficients d = " ++ show d ++ " n = " ++ show n ++ " s = " ++ show s ++ " len(bs) =" ++ show (length bs))
-    else H d n (listArray (0, s - 1) bs)
-
 -- sh :: [[a]] -> [[a]]
 -- sh (x : xs) = [head x] : zipWith (:) (tail x) (sh xs)
 
-combine :: [Formal Q] -> Multivariate Q
-combine xs =
+ogf :: [Formal Q] -> Multivariate Q
+ogf xs =
   let ys = map (\x -> unF x ++ repeat 0) xs
-      cs = sh ys
+      cs = staggeredColumns ys
   in M $ F [H d 2 (listArray (0, d) a) | (d, a) <- zip [0 ..] cs]
 
-gf2 :: [Multivariate Q] -> Multivariate Q
-gf2 xs =
-  let bs' = sh (map (extractCoeffs 2) xs)
-      bs = bs'
---       makeH d bs = H d (n + 1) (listArray (0, hdim' (n + 1) d - 1) bs) -- Original
---       gf' d (b : bs) = makeH d (concat b) : gf' (d + 1) bs
-      gf' d (b : bs) = makeH 3 d (concat (sh b)) : gf' (d + 1) bs
-  -- that sh thing is a gross hack that works for n=2
-  in M (F (gf' 0 bs))
+ogf2 :: [Multivariate Q] -> Multivariate Q
+ogf2 xs =
+  let bs = staggeredColumns (map (extractCoeffs 2) xs)
+      ogf2' d (b : bs) = H.fromAllCoefficients 3 d (concat (staggeredColumns b)) : ogf2' (d + 1) bs
+  in M (F (ogf2' 0 bs))
+
+truncate :: Int -> Multivariate a -> Multivariate a
+truncate i (M as) = M (F.truncate i as)

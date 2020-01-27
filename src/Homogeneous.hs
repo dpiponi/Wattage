@@ -98,6 +98,7 @@ showVar i 1 = "x" ++ show i
 showVar i k = "x" ++ show i ++ "^" ++ show k
 
 showTerm :: (Show a, Num a, Eq a) => a -> Exponent -> String
+showTerm a js | all (==0) js = show a
 showTerm 1 js = L.intercalate " * " [showVar i j |
                                           (i, j) <- enumerate js, j /= 0]
 showTerm (-1) js = "- " ++ L.intercalate " * " [showVar i j |
@@ -425,3 +426,14 @@ hint i h@(H d n c) = --trace (show (i, d, n, c)) $
 
 integrate :: (Num a, Eq a, Show a, Fractional a) => Int -> Homogeneous a -> Homogeneous a
 integrate = hint
+
+fromAllCoefficients n d bs = 
+  let s = hdim' n d
+  in if s /= length (bs)
+    then error ("Wrong # of coefficients d = " ++ show d ++ " n = " ++ show n ++ " s = " ++ show s ++ " len(bs) =" ++ show (length bs))
+    else H d n (A.listArray (0, s - 1) bs)
+
+allCoefficients :: (Show a, Num a) => Int -> Int -> Homogeneous a -> [a]
+allCoefficients n d h@(H d' n' cs) | n' < n = allCoefficients n d (upgrade n h)
+allCoefficients n d (H d' n' cs) = A.elems cs
+allCoefficients n d Zero = take (hdim' n d) (repeat 0)
