@@ -52,6 +52,8 @@ getCycles a = L.reverse $ L.sort $ runST $ do
           return $ (r : c)
   cycles_from 0
 
+checkIdentity n p = p == identity n
+
 transpositions :: Integer -> [Permutation]
 transpositions n = do
   i <- [0 .. n-2]
@@ -65,6 +67,16 @@ hurwitz m mu =
               etas <- replicateM (fromIntegral m) (transpositions n)
               let p = foldr compose (identity n) etas
               guard $ getCycles p == mu
+              return p)
+--   in ps
+  in (fromIntegral (length ps) / fromIntegral (product [1 .. n]))
+
+hurwitz'' :: Z -> Z -> Q
+hurwitz'' m n =
+  let ps = (do
+              etas <- replicateM (fromIntegral m) (transpositions n)
+              let p = foldr compose (identity n) etas
+              guard $ checkIdentity n p
               return p)
 --   in ps
   in (fromIntegral (length ps) / fromIntegral (product [1 .. n]))
@@ -110,4 +122,4 @@ main = do
     forM_ [1..8] $ \d -> do
       let g = n `div` 2 + 1 - d
       let d0 = fromInteger d
-      putStrLn $ "g=" ++ show g ++ " d=" ++ show d ++ " n=" ++ show n ++ ": " ++ show (hurwitz n (take d0 (cycle [1])) / fromIntegral (fact n))
+      putStrLn $ "g=" ++ show g ++ " d=" ++ show d ++ " n=" ++ show n ++ ": " ++ show (hurwitz'' n d0 / fromIntegral (fact n))
