@@ -16,24 +16,23 @@ lambertW = do
 
 -- Evaluating series given by eq (10), p.3 of
 -- CLASSICAL HURWITZ NUMBERS AND RELATED COMBINATORICS
--- https://people.mpim-bonn.mpg.de/zagier/files/tex/ClassicalHurwitz/HurwitzRevised.pdf
+-- [1] https://people.mpim-bonn.mpg.de/zagier/files/tex/ClassicalHurwitz/HurwitzRevised.pdf
 -- The numbers printed are given in table B.4 on page 57 of
 -- On Asymptotics and Resurgent Structures of
 -- Enumerative Gromov–Witten Invariants
--- https://arxiv.org/pdf/1605.07473.pdf
+-- [2] https://arxiv.org/pdf/1605.07473.pdf
 
-gromov_witten =  do
+pandharipande =  do
+  putStrLn "First the direct application of the Pandharipande formula"
   let x = M.var 0 :: Multivariate Q
   let y = M.var 1
   let intY = M.integrate 1
   let h x y = intY (intY (exp (h x (y * exp x) - 2 * h x y + h x (y * exp (-x)))) / y)
   print $ F.truncate 12 $ unM $ h x y
---   print ""
---   print $ F.truncate 14 $ unM $ exp (h x y)
 
 x :: Formal Q
 x = F.var
-
+-- These are the C_d on page 4 of [1]
 c :: Int -> Formal Q
 c 1 = 1
 c d0 = let d = fromIntegral d0
@@ -43,18 +42,22 @@ c d0 = let d = fromIntegral d0
       let k = fromIntegral k0]
 c' = memoize c
 
-tt x = trace (show x) x
-
-main = do
-  print "---"
---   print $ F.truncate 5 $ c' 2
---   print $ F.truncate 5 $ unM $ combine $ [exp (k * x) :: Formal Q | k0 <- [0..], let k = fromIntegral k0]
---   print $ combine $ [c' k :: Formal Q | k0 <- [0..], let k = fromIntegral k0]
+dubrovin = do
+  putStrLn "Now the faster Dubrovin formula."
+  putStrLn "First some of H"
   let h = ogf $ [c' k | k <- [0..]]
   print $ M.truncate 20 $ h
-  print "---"
+  putStrLn "Now some of Z_H = exp H"
   print $ M.truncate 20 $ exp h
---   print $ F.truncate 20 $ c 4
---   print $ F.truncate 5 $ unM $ combine [c d | d <- [0..]]
---   lambertW
---   gromov_witten
+
+  -- Example from page 40 of [2]
+  let g = 100 :: Int
+  let d = 6 :: Int
+  let n = 2*g+2*d-2
+  -- 36773029021136586120...20640
+  putStrLn "H_100,6 ="
+  print $ fromIntegral (fact (fromIntegral n)) * M.coefficient [n, d] h
+
+main = do
+  pandharipande
+  dubrovin

@@ -3,7 +3,7 @@ import Data.Monoid
 import Control.Monad
 import Control.Monad.Writer
 import Control.Monad.State
-import Control.Monad.Plus
+-- import Control.Monad.Plus
 import Data.Ratio
 import Debug.Trace
 import Data.Function.Memoize
@@ -50,7 +50,7 @@ anyInteger n = do
       tell (Product (fromIntegral (n - s)))
       modify (+ 1)
       return s
-  left `mplus` right
+  left <|> right
 
 count :: Num b => [(a, Product b)] -> b
 count = sum . map (getProduct . snd)
