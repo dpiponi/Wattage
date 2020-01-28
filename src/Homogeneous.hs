@@ -17,6 +17,7 @@ import Data.Ratio
 import Data.Maybe
 import Debug.Trace
 import Formal
+import Data.Function.Memoize
 
 type Z = Integer
 
@@ -28,10 +29,15 @@ pochhammer x n = product [x, x+1 .. x+n-1]
 
 -- Dimension of space of degree d polynomials in n variables
 hdim' :: Int -> Int -> Int
-hdim' n d = fromInteger (pochhammer (fromIntegral n) (fromIntegral d) `div` fact (fromIntegral d))
+hdim' n d = fromInteger (
+  pochhammer (fromIntegral n) (fromIntegral d) `div` fact (fromIntegral d))
+hdim = memoize2 hdim'
 
-hdimCache = A.array ((0, 0), (255, 255)) [((i, j), hdim' i j) | i <- [0..255], j <- [0..255]]
-hdim i j = if i < 256 && j < 256 then hdimCache A.! (i, j) else hdim' i j
+-- hdimCache = A.array ((0, 0), (255, 255))
+--                     [((i, j), hdim' i j) | i <- [0..255], j <- [0..255]]
+-- hdim i j = if i < 256 && j < 256
+--   then hdimCache A.! (i, j)
+--   else hdim' i j
 
 type Exponent = [Int]
 

@@ -39,7 +39,8 @@ library
   build-depends:
       base >=4.7 && <5,
       array,
-      containers
+      containers,
+      memoize
   default-language: Haskell2010
 
 executable ex1
