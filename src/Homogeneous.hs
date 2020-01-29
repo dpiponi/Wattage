@@ -166,9 +166,9 @@ allOfDegree d n = do
   js <- allOfDegree (d - i) (n-1)
   return (i : js)
 
-x0 = make_var 0 1 :: Homogeneous Rational
-x1 = make_var 1 2 :: Homogeneous Rational
-x2 = make_var 2 3 :: Homogeneous Rational
+-- x0 = make_var 0 1 :: Homogeneous Rational
+-- x1 = make_var 1 2 :: Homogeneous Rational
+-- x2 = make_var 2 3 :: Homogeneous Rational
 
 -- XXX Could be optimised maybe
 upgrade :: (Show a, Num a) => Int -> Homogeneous a -> Homogeneous a
@@ -181,7 +181,8 @@ upgrade n1 (H d n0 c0) =
 --   in H d n1 $ array' (0, s1 - 1) [(i, if i < s0 then c0 A.! i else 0) | i <- [0 .. s1 - 1]]
   in homogeneousFromList n1 d [(c0 A.! addr' n0 d i, i) | i <- allOfDegree d n0]
 
--- Worried about this XXX. ScopedTypeVariables should mean I don't need 2nd Num a.
+-- | Construct homogeneous polynomial from a list of pairs
+-- of coefficients and exponents.
 homogeneousFromList :: Num a => Int -> Int -> [(a, Exponent)] -> Homogeneous a
 homogeneousFromList n d as =
     H d n $ runST $ do
@@ -364,12 +365,15 @@ instance (Eq a, Num a, Show a) => Eq (Homogeneous a) where
 instance (Eq a, Show a, Num a) => Num (Homogeneous a) where
   h0 + Zero = h0
   Zero + h1 = h1
-  h0@(H d0 _ _) + h1@(H d1 _ _) | d0 /= d1 = error $ "Can't add mixed degrees: " ++ show (h0, h1)
+
+  h0@(H d0 _ _) + h1@(H d1 _ _) | d0 /= d1 =
+    error $ "Can't add mixed degrees: " ++ show (h0, h1)
   h0@(H _ n0 _) + h1@(H _ n1 _) =
     let n = max n0 n1
         H d0' n0' c0' = if n0 < n then upgrade n h0 else h0
         H d1' n1' c1' = if n1 < n then upgrade n h1 else h1
     in H d0' n $ listArray' (A.bounds c0') $ zipWith (+) (A.elems c0') (A.elems c1')
+
   h0 * Zero = Zero
   Zero * h1 = Zero
   h0@(H d0 n0 c0) * h1@(H d1 n1 c1) =
@@ -377,10 +381,13 @@ instance (Eq a, Show a, Num a) => Num (Homogeneous a) where
         h0' = if n0 < n then upgrade n h0 else h0
         h1' = if n1 < n then upgrade n h1 else h1
     in h0' `htimes` h1'
+
   fromInteger 0 = Zero
   fromInteger i = H 0 1 $ listArray' (0, 0) [fromInteger i]
+
   negate Zero = Zero
   negate (H d n c) = H d n $ fmap negate c
+
   signum _ = 1 -- Not clear what this should be
   abs _ = error "No abs for Homogeneous"
 
@@ -399,6 +406,8 @@ hderiv i (H d n c) =
                                            let Just js = mjs,
                                            let a = fromIntegral p * (c A.! addr' n d is)]
 
+-- | `d i h` is the derivative of the homogeneous polynomial
+-- `h` with respect to the `i`th variable.
 d :: (Num a, Eq a, Show a) => Int -> Homogeneous a -> Homogeneous a
 d = hderiv
 
@@ -433,12 +442,20 @@ hint i h@(H d n c) = --trace (show (i, d, n, c)) $
 integrate :: (Num a, Eq a, Show a, Fractional a) => Int -> Homogeneous a -> Homogeneous a
 integrate = hint
 
+-- | Construct a homogeneous polynomial from  a list of its coefficients
+-- in standard order.
 fromAllCoefficients n d bs = 
   let s = hdim' n d
   in if s /= length (bs)
-    then error ("Wrong # of coefficients d = " ++ show d ++ " n = " ++ show n ++ " s = " ++ show s ++ " len(bs) =" ++ show (length bs))
+    then error ("Wrong # of coefficients d = " ++
+                show d ++ " n = " ++ show n ++
+                " s = " ++ show s ++
+                " len(bs) =" ++ show (length bs))
     else H d n (A.listArray (0, s - 1) bs)
 
+-- | Obtain a list of all coefficients from a homogeneous polynomial
+-- in standard order. This includes zero polynomials which are returned
+-- as a isuitably sized list of 0's.
 allCoefficients :: (Show a, Num a) => Int -> Int -> Homogeneous a -> [a]
 allCoefficients n d h@(H d' n' cs) | n' < n = allCoefficients n d (upgrade n h)
 allCoefficients n d (H d' n' cs) = A.elems cs

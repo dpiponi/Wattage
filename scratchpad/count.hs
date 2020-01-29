@@ -110,6 +110,8 @@ someTranspositions n 0 = return (identity n)
 someTranspositions n m =
   compose <$> someTranspositions n (m - 1) <*> transpositions n
 
+-- Count # of ways to write identity in S_d as a product of n transpositions.
+-- Note the final result is, by convention, divided by d!
 hurwitz 0 d = 1 / fromIntegral (fact d)
 hurwitz n d =
   -- Instead of multiplying n transpositions to see if we get the
