@@ -1,12 +1,36 @@
 {-# LANGUAGE TypeOperators #-}
 
-module Formal where
+module Formal(Q,
+              Formal(..),
+              var,
+              coefficient,
+              truncate,
+              integrate,
+              (...),
+              inverse,
+              fcompose,
+              itlog,
+              itexp,
+              z,
+              hypergeometric,
+              f21,
+              mapf,
+              dilog,
+              theta3,
+              theta4,
+              lconvolve,
+              fibs,
+              tribs,
+              trunc,
+              prepend,
+              Position(..)) where
 
 import Poly
 
 import Data.Ratio
 import Data.List hiding (union)
 import Debug.Trace
+import Prelude hiding (truncate)
 
 (.*.) :: Num a => [a] -> [a] -> [a]
 (.*.) = zipWith (*)

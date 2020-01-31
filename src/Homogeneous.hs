@@ -1,10 +1,18 @@
-
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-
-module Homogeneous where
+module Homogeneous(Homogeneous(..),
+                   Exponent,
+                   coefficient,
+                   make_var,
+                   hint,
+                   allCoefficients,
+                   fact,
+                   var,
+                   integrate,
+                   d,
+                   fromAllCoefficients) where
 
 import qualified Data.Array as A
 import qualified Data.Array.MArray as M
@@ -16,7 +24,7 @@ import Control.Monad.ST
 import Data.Ratio
 import Data.Maybe
 import Debug.Trace
-import Formal
+import qualified Formal as F
 import Data.Function.Memoize
 
 type Z = Integer
@@ -114,13 +122,13 @@ showTerm c0 js | signum c0 == -1 = ("- "  ++) $ showsPrec 8 (- c0) $ " * " ++ L.
 showTerm c0 js = showsPrec 8 c0 $ " * " ++ L.intercalate " * " [showVar i j |
                                               (i, j) <- enumerate js, j /= 0]
 
-showTerms :: (Show a, Num a, Eq a) => Position -> [(a, Exponent)] -> String
-showTerms Initial [] = "0"
-showTerms Initial ((c, js) : xs) | signum c == -1 = showTerm c js ++ showTerms NonInitial xs
-showTerms Initial ((c, js) : xs) = showTerm c js ++ showTerms NonInitial xs
-showTerms NonInitial [] = ""
-showTerms NonInitial ((x, js) : xs) | signum x == -1 = " - " ++ showTerm (-x) js ++ showTerms NonInitial xs
-showTerms NonInitial ((x, js) : xs) = " + " ++ showTerm x js ++ showTerms NonInitial xs
+showTerms :: (Show a, Num a, Eq a) => F.Position -> [(a, Exponent)] -> String
+showTerms F.Initial [] = "0"
+showTerms F.Initial ((c, js) : xs) | signum c == -1 = showTerm c js ++ showTerms F.NonInitial xs
+showTerms F.Initial ((c, js) : xs) = showTerm c js ++ showTerms F.NonInitial xs
+showTerms F.NonInitial [] = ""
+showTerms F.NonInitial ((x, js) : xs) | signum x == -1 = " - " ++ showTerm (-x) js ++ showTerms F.NonInitial xs
+showTerms F.NonInitial ((x, js) : xs) = " + " ++ showTerm x js ++ showTerms F.NonInitial xs
 
 instance (Show a, Num a, Eq a) => Show (Homogeneous a) where
   showsPrec p Zero = showString "0"
@@ -128,7 +136,7 @@ instance (Show a, Num a, Eq a) => Show (Homogeneous a) where
   showsPrec p h =
     let terms = nonZeroTerms h
         precedence = if length terms == 1 then 8 else 7
-    in showParen (p > precedence) $ showString $ showTerms Initial (nonZeroTerms h)
+    in showParen (p > precedence) $ showString $ showTerms F.Initial (nonZeroTerms h)
 
 instance (Fractional a, Show a, Eq a) => Fractional (Homogeneous a) where
   fromRational i = H 0 1 $ listArray' (0, 0) [fromRational i]
