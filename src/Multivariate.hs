@@ -1,25 +1,29 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Multivariate where
+module Multivariate(var,
+                    coefficient,
+                    Multivariate(..)) where
 
-import Formal as F
-import Homogeneous as H
+import qualified Formal as F
+import Formal(Q, Formal(..))
+import qualified Homogeneous as H
+import Homogeneous(Homogeneous(..))
 import Data.Array as A
 
-newtype Multivariate a = M { unM :: Formal (Homogeneous a) }
+newtype Multivariate a = M { unM :: F.Formal (Homogeneous a) }
   deriving (Num, Fractional, Floating)
 
 var :: (Show a, Num a) => Int -> Multivariate a
-var i = M (F [Zero, make_var i (i + 1)])
+var i = M (F [Zero, H.make_var i (i + 1)])
 
-coefficient :: (Eq a, Num a, Show a) => Exponent -> Multivariate a -> a
+coefficient :: (Eq a, Num a, Show a) => H.Exponent -> Multivariate a -> a
 coefficient is (M f) = H.coefficient is (F.coefficient (sum is) f)
 
 integrate :: (Num a, Eq a, Show a, Fractional a) => Int -> Multivariate a -> Multivariate a
-integrate i (M xs) = M $ 0 `prepend` fmap (hint i) xs
+integrate i (M xs) = M $ 0 `F.prepend` fmap (H.hint i) xs
 
 d :: (Num a, Eq a, Show a, Fractional a) => Int -> Multivariate a -> Multivariate a
-d i (M xs) = M $ 0 `prepend` fmap (hint i) xs
+d i (M xs) = M $ 0 `F.prepend` fmap (H.hint i) xs
 
 -- mprepend :: Homogeneous a -> Multivariate a -> Multivariate a
 -- mprepend x (M ys) = M (x `prepend` ys)
@@ -40,19 +44,19 @@ d i (M xs) = M $ 0 `prepend` fmap (hint i) xs
 instance (Show a, Num a, Eq a) => Show (Multivariate a) where
 --   show (M x) = show x
     showsPrec _ (M (F [])) = ("0" ++)
-    showsPrec p (M (F x)) = showParen (p >= 6) $ showTerms Initial 0 x where
+    showsPrec p (M (F x)) = showParen (p >= 6) $ showTerms F.Initial 0 x where
         showTerms _ _ [] = error "Shouldn't be showing empty list of terms"
-        showTerms Initial n ([0]) = ("0" ++)
-        showTerms Initial n ([x]) = showTerm n x
-        showTerms NonInitial n ([0]) = id
-        showTerms NonInitial n ([x]) | signum x == -1 = (" - " ++) . showTerm n (-x)
-        showTerms NonInitial n ([x]) = (" + " ++) . showTerm n x
+        showTerms F.Initial n ([0]) = ("0" ++)
+        showTerms F.Initial n ([x]) = showTerm n x
+        showTerms F.NonInitial n ([0]) = id
+        showTerms F.NonInitial n ([x]) | signum x == -1 = (" - " ++) . showTerm n (-x)
+        showTerms F.NonInitial n ([x]) = (" + " ++) . showTerm n x
         showTerms position n (0 : xs) = showTerms position (n + 1) xs
-        showTerms Initial n (x : xs) = showTerm n x . showTerms NonInitial (n + 1) xs
-        showTerms NonInitial n (x : xs) | signum x == -1 =
-                (" - " ++) . showTerm n (-x) . showTerms NonInitial (n + 1) xs
-        showTerms NonInitial n (x : xs) =
-                (" + " ++) . showTerm n x . showTerms NonInitial (n + 1) xs
+        showTerms F.Initial n (x : xs) = showTerm n x . showTerms F.NonInitial (n + 1) xs
+        showTerms F.NonInitial n (x : xs) | signum x == -1 =
+                (" - " ++) . showTerm n (-x) . showTerms F.NonInitial (n + 1) xs
+        showTerms F.NonInitial n (x : xs) =
+                (" + " ++) . showTerm n x . showTerms F.NonInitial (n + 1) xs
         showTerm 0 0 = ("0" ++)
         showTerm 0 x = showsPrec 6 x
         showTerm 1 1 = ("x" ++)
@@ -64,13 +68,13 @@ instance (Show a, Num a, Eq a) => Show (Multivariate a) where
 
 extractCoeffs :: Int -> Multivariate Q -> [[Q]]
 extractCoeffs n (M (F xs)) = 
-  let extractCoeffs' n d (x:xs) = allCoefficients n d x : extractCoeffs' n (d + 1) xs
+  let extractCoeffs' n d (x:xs) = H.allCoefficients n d x : extractCoeffs' n (d + 1) xs
   in extractCoeffs' n 0 (xs ++ repeat Zero)
 
 staggeredColumns :: [[a]] -> [[a]]
 staggeredColumns (x : xs) = [head x] : zipWith (:) (tail x) (staggeredColumns xs)
 
--- combine :: [Formal Q] -> Multivariate Q
+-- combine :: [F.Formal Q] -> Multivariate Q
 -- combine xs =
 --   let ys = map (\x -> unF x ++ repeat 0) xs
 --       cs = sh ys
@@ -79,7 +83,7 @@ staggeredColumns (x : xs) = [head x] : zipWith (:) (tail x) (staggeredColumns xs
 -- sh :: [[a]] -> [[a]]
 -- sh (x : xs) = [head x] : zipWith (:) (tail x) (sh xs)
 
-ogf :: [Formal Q] -> Multivariate Q
+ogf :: [F.Formal Q] -> Multivariate Q
 ogf xs =
   let ys = map (\x -> unF x ++ repeat 0) xs
       cs = staggeredColumns ys
