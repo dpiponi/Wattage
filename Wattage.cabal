@@ -29,6 +29,7 @@ library
   exposed-modules:
       Poly
       Homogeneous
+      Homogeneous.Index
       Multivariate
       Formal
   other-modules:
