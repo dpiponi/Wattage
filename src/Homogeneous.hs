@@ -36,16 +36,17 @@ pochhammer :: Integer -> Integer -> Integer
 pochhammer x n = product [x, x+1 .. x+n-1]
 
 -- Dimension of space of degree d polynomials in n variables
+-- `memoize` version slower
 hdim' :: Int -> Int -> Int
 hdim' n d = fromInteger (
   pochhammer (fromIntegral n) (fromIntegral d) `div` fact (fromIntegral d))
-hdim = memoize2 hdim'
+-- hdim = memoize2 hdim'
 
--- hdimCache = A.array ((0, 0), (255, 255))
---                     [((i, j), hdim' i j) | i <- [0..255], j <- [0..255]]
--- hdim i j = if i < 256 && j < 256
---   then hdimCache A.! (i, j)
---   else hdim' i j
+hdimCache = A.array ((0, 0), (255, 255))
+                    [((i, j), hdim' i j) | i <- [0..255], j <- [0..255]]
+hdim i j = if i < 256 && j < 256
+  then hdimCache A.! (i, j)
+  else hdim' i j
 
 type Exponent = [Int]
 
@@ -187,9 +188,8 @@ upgrade n Zero = Zero
 upgrade n (H _ n0 _) | n < n0 = error "Trying to lower number of variables in homogeneous polynomial"
 upgrade n h@(H _ n0 _) | n == n0 = h
 upgrade n1 (H d n0 c0) =
-  let s0 = hdim n0 d -- pochhammer n0 d `div` fact d
-      s1 = hdim n1 d -- pochhammer n1 d `div` fact d
---   in H d n1 $ array' (0, s1 - 1) [(i, if i < s0 then c0 A.! i else 0) | i <- [0 .. s1 - 1]]
+  let s0 = hdim n0 d
+      s1 = hdim n1 d
   in homogeneousFromList n1 d [(c0 A.! addr' n0 d i, i) | i <- allOfDegree d n0]
 
 -- | Construct homogeneous polynomial from a list of pairs
