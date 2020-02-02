@@ -2,8 +2,12 @@
 
 module Multivariate(var,
                     coefficient,
+                    integrate,
+                    truncate,
+                    ogf,
                     Multivariate(..)) where
 
+import Prelude hiding (truncate)
 import qualified Formal as F
 import Formal(Q, Formal(..))
 import qualified Homogeneous as H

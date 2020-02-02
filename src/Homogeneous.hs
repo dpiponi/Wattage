@@ -167,6 +167,9 @@ makeMonomial a ks =
                                           j <- [0 .. size - 1]]
     in m
 
+-- | Return list of all exponents in degree `d` homogeneous polynomial
+-- with `n` variables. Listed in order used in `Homogeneous` internal
+-- structure.
 allOfDegree :: Int -> Int -> [Exponent]
 allOfDegree d 1 = [[d]]
 allOfDegree d n = do
@@ -201,8 +204,7 @@ homogeneousFromList n d as =
 -- Build homogeneous polynomial "procedurally"
 makeHomogeneous :: Int -> Int -> (Exponent -> a) -> Homogeneous a
 makeHomogeneous d n f =
-    H d n $ A.listArray (0, hdim n d -1) [f is |
-                                            is <- allOfDegree d n]
+    H d n $ A.listArray (0, hdim n d -1) $ map f $ allOfDegree d n
 
 -- Build homogeneous polynomial from list with index
 makeIndexHomogeneous :: Int -> Int -> (Int -> Exponent -> a) -> Homogeneous a

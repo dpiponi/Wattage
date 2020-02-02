@@ -69,7 +69,9 @@ adjust_down_by ns xs =
   in adjust_by' 1 (tail ns) xs
 
 main = do
+  -- Compute address directly
   print $ addr' 7 6 [1, 1, 0, 1, 0, 2, 1]
+  -- Compute address by walking there one cell at a time
   let ptr = adjust_up_by [1, 1, 0, 1, 0, 2, 1] $ zero 7
   print $ value $ ptr
   let ptr' = adjust_down_by [1, 1, 0, 1, 0, 2, 1] $ ptr
