@@ -4,6 +4,7 @@ module Multivariate(var,
                     coefficient,
                     integrate,
                     truncate,
+                    d,
                     ogf,
                     Multivariate(..)) where
 
