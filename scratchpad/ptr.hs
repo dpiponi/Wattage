@@ -1,3 +1,4 @@
+import Control.Monad
 import Homogeneous.Index hiding (incr,decr)
 
 decr :: [Int] -> [Int]
@@ -57,14 +58,14 @@ adjust_down_by ns xs =
       adjust_by' i (n : ns) xs = adjust_by' i (n - 1 : ns) $ adjust_up_down 0 i xs
   in adjust_by' 1 (tail ns) xs
 
--- allOfDegree :: Int -> Int -> [Exponent]
--- allOfDegree d 1 = [[d]]
--- allOfDegree d n = do
---   i <- [d, d-1 .. 0]
---   js <- allOfDegree (d - i) (n-1)
---   return (i : js)
+allOfDegree' :: Int -> Int -> [Int] -> IO ()
+allOfDegree' d 1 es = print $ (es ++ [d])
+allOfDegree' d n es = do
+  forM_ [d, d-1 .. 0] $ \i -> do
+    allOfDegree' (d - i) (n-1) (es ++ [i])
 
 main = do
+  allOfDegree' 2 3 []
   print $ adjust_down_up 0 1 $ zero 3
   -- Compute address directly
   print $ addr' 7 6 [1, 1, 0, 1, 0, 2, 1]
