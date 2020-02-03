@@ -26,7 +26,6 @@ import Data.Ratio
 import Data.Maybe
 import Debug.Trace
 import qualified Formal as F
-import Data.Function.Memoize
 
 trimmed :: (Eq a, Num a) => [a] -> [a]
 trimmed [] = []
@@ -34,7 +33,8 @@ trimmed (0 : xs) = let ys = trimmed xs
                    in if null ys then [] else 0 : ys
 trimmed (x : xs) = x : trimmed xs
 
-
+-- | `coefficient es h` returns coefficient of `x^es` in homogeneous polynomial
+-- `h`.
 coefficient :: Num a => Exponent -> Homogeneous a -> a
 coefficient _ Zero = 0
 coefficient is (H d n cs) =
@@ -45,16 +45,9 @@ coefficient is (H d n cs) =
           then 0
           else cs A.! addr' n d is'
 
-
-{-
- - Δₓ hdim x d = hdim (x + 1) (d - 1)
- - Δₓ addr' x d (e : es) =
- -    Δₓ (hdim (x - e) (n - 1)) + Δₓ (addr' (n - 1) (x - e) es
- - = hdim (x + 1 - e) (n - 2) + addr' (n - 1) (x - e) es
- -}
-
-data Homogeneous a = Zero | H { degree :: Int, num_vars :: Int, coefficients :: A.Array Int a }
---   deriving Show
+data Homogeneous a = Zero
+                 | H { degree :: Int, num_vars :: Int,
+                       coefficients :: A.Array Int a }
 
 superscripts, subscripts :: Map.Map Char Char
 superscripts = Map.fromList $ zip "0123456789-" "⁰¹²³⁴⁵⁶⁷⁸⁹⁻"
@@ -95,6 +88,7 @@ showTerms F.NonInitial [] = ""
 showTerms F.NonInitial ((x, js) : xs) | signum x == -1 = " - " ++ showTerm (-x) js ++ showTerms F.NonInitial xs
 showTerms F.NonInitial ((x, js) : xs) = " + " ++ showTerm x js ++ showTerms F.NonInitial xs
 
+-- This is a mess and needs to be simplified. XXX
 instance (Show a, Num a, Eq a) => Show (Homogeneous a) where
   showsPrec p Zero = showString "0"
 --   showPrec p x h | countTerms h == 1 = 
@@ -139,7 +133,8 @@ makeMonomial a ks =
 -- XXX Could be optimised maybe
 upgrade :: (Show a, Num a) => Int -> Homogeneous a -> Homogeneous a
 upgrade n Zero = Zero
-upgrade n (H _ n0 _) | n < n0 = error "Trying to lower number of variables in homogeneous polynomial"
+upgrade n (H _ n0 _) | n < n0 =
+  error "Trying to lower number of variables in homogeneous polynomial"
 upgrade n h@(H _ n0 _) | n == n0 = h
 upgrade n1 (H d n0 c0) =
   let s0 = hdim n0 d
