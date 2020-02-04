@@ -58,14 +58,29 @@ adjust_down_by ns xs =
       adjust_by' i (n : ns) xs = adjust_by' i (n - 1 : ns) $ adjust_up_down 0 i xs
   in adjust_by' 1 (tail ns) xs
 
+{-
 allOfDegree' :: Int -> Int -> [Int] -> IO ()
 allOfDegree' d 1 es = print $ (es ++ [d])
 allOfDegree' d n es = do
-  forM_ [d, d-1 .. 0] $ \i -> do
-    allOfDegree' (d - i) (n-1) (es ++ [i])
+  let loop i | i < 0 = return ()
+      loop i = do
+        allOfDegree' (d - i) (n-1) (es ++ [i])
+        loop (i - 1)
+  loop d
+-}
+
+allOfDegree' :: Int -> Int -> [Int] -> HPtr -> [Int] -> IO ()
+allOfDegree' d 1 pre p es = print $ (p, es ++ [d])
+allOfDegree' d n pre p es = do
+  let loop i d n pre p es | i < 0 = return ()
+      loop i d n pre (p, dp) es = do
+        allOfDegree' (d - i) (n-1) pre (p, tail dp) (es ++ [i])
+        loop (i - 1) d n pre (p, dp) es
+  loop d d n pre p es
 
 main = do
-  allOfDegree' 2 3 []
+  allOfDegree' 2 3 [] (zero 3) []
+  putStrLn "---"
   print $ adjust_down_up 0 1 $ zero 3
   -- Compute address directly
   print $ addr' 7 6 [1, 1, 0, 1, 0, 2, 1]
