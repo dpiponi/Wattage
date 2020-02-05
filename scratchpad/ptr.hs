@@ -83,19 +83,28 @@ allOfDegree' d n p es = do
         loop (i - 1) d n p' es
   loop d d n p es
 
+allOfDegree'' :: Int -> Int -> HPtr -> [Int] -> [(Int, [Int])]
+allOfDegree'' d 1 p es = [(fst p, es ++ [d])]
+allOfDegree'' d n p es = 
+  let loop i d n p es | i < 0 = []
+      loop i d n p es = 
+        allOfDegree'' (d - i) (n-1) (ptail p) (es ++ [i]) ++
+            loop (i - 1) d n (adjust_down_up 0 1 p) es
+  in loop d d n p es
+
 --         0
 --       1   2
 --     3   4   5
 --   6   7   8   9
 -- 10  11  12  13  14
 
-diff :: Num a => Int -> Homogeneous a -> Homogeneous a
-diff i (H n d hs) =
-  let delta = [if j == i then 1 else 0 | j <- [0 .. n - 1]]
-      ptrs = allOfDegree' n d (adjust_up_by delta $ zero n) []
-      size = hdim d (n - 1)
-  in homogeneousFromList n (d - 1) $ zip [0 ..] $
-    [(es !! i) *  (hs ! j) | (j, es) <- ptrs]  -- - es not correct
+-- diff :: Num a => Int -> Homogeneous a -> Homogeneous a
+-- diff i (H n d hs) =
+--   let delta = [if j == i then 1 else 0 | j <- [0 .. n - 1]]
+--       ptrs = allOfDegree' n d (adjust_up_by delta $ zero n) []
+--       size = hdim d (n - 1)
+--   in homogeneousFromList n (d - 1) $ zip [0 ..] $
+--     [(es !! i) *  (hs ! j) | (j, es) <- ptrs]  -- - es not correct
 
 
 main = do
@@ -103,6 +112,8 @@ main = do
   let x1 = H.var 1 :: H.Homogeneous Int
   let x2 = H.var 2 :: H.Homogeneous Int
   let u = x0 * x0 + x1 * x1 + x2 * x2
+  print $ allOfDegree'' 2 3 (adjust_up_by [0, 1, 1] $ zero 3) []
+
   -- allOfDegree' 2 3 (adjust_up_by [0, 1, 1] $ zero 3) []
 
   {-
