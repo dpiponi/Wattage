@@ -1,5 +1,6 @@
 import Control.Monad
 import Homogeneous.Index hiding (incr,decr)
+import qualified Homogeneous as H
 
 decr :: [Int] -> [Int]
 decr [] = []
@@ -12,6 +13,9 @@ incr [x] = [x]
 incr (x0 : xs) = let y0 : ys = incr xs in x0 + y0 : y0 : ys
 
 type HPtr = (Int, [[Int]])
+
+ptail :: HPtr -> HPtr
+ptail (p, t) = (p, tail t)
 
 -- value :: [[Int]] -> Int
 -- value = sum . map head
@@ -69,17 +73,28 @@ allOfDegree' d n es = do
   loop d
 -}
 
-allOfDegree' :: Int -> Int -> [Int] -> HPtr -> [Int] -> IO ()
-allOfDegree' d 1 pre p es = print $ (p, es ++ [d])
-allOfDegree' d n pre p es = do
-  let loop i d n pre p es | i < 0 = return ()
-      loop i d n pre (p, dp) es = do
-        allOfDegree' (d - i) (n-1) pre (p, tail dp) (es ++ [i])
-        loop (i - 1) d n pre (p, dp) es
-  loop d d n pre p es
+allOfDegree' :: Int -> Int -> HPtr -> [Int] -> IO ()
+allOfDegree' d 1 p es = print $ (p, es ++ [d])
+allOfDegree' d n p es = do
+  let loop i d n p es | i < 0 = return ()
+      loop i d n p es = do
+        allOfDegree' (d - i) (n-1) (ptail p) (es ++ [i])
+        let p' = adjust_down_up 0 1 p
+        loop (i - 1) d n p' es
+  loop d d n p es
+
+--         0
+--       1   2
+--     3   4   5
+--   6   7   8   9
+-- 10  11  12  13  14
 
 main = do
-  allOfDegree' 2 3 [] (zero 3) []
+  let x0 = H.var 0 :: H.Homogeneous Int
+  print x0
+  -- allOfDegree' 2 3 (adjust_up_by [0, 1, 1] $ zero 3) []
+
+  {-
   putStrLn "---"
   print $ adjust_down_up 0 1 $ zero 3
   -- Compute address directly
@@ -89,4 +104,5 @@ main = do
   print $ ptr
   let ptr' = adjust_down_by [1, 1, 0, 1, 0, 2, 1] $ ptr
   print $ ptr'
+  -}
 
