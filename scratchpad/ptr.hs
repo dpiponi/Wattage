@@ -1,18 +1,18 @@
 import Data.Array
 import Control.Monad
-import Homogeneous.Index hiding (incr,decr)
+import Homogeneous.Index hiding (up,down)
 import qualified Homogeneous as H
 import Debug.Trace
 
-decr :: [Int] -> [Int]
-decr [] = []
-decr [x] = [x]
-decr (x0 : x1 : xs) = x0 - x1 : decr (x1 : xs)
+down :: [Int] -> [Int]
+down [] = []
+down [x] = [x]
+down (x0 : x1 : xs) = x0 - x1 : down (x1 : xs)
 
-incr :: [Int] -> [Int]
-incr [] = []
-incr [x] = [x]
-incr (x0 : xs) = let y0 : ys = incr xs in x0 + y0 : y0 : ys
+up :: [Int] -> [Int]
+up [] = []
+up [x] = [x]
+up (x0 : xs) = let y0 : ys = up xs in x0 + y0 : y0 : ys
 
 type HPtr = (Int, [[Int]])
 
@@ -30,7 +30,7 @@ adjust_down_up i j (p, xs : xss) | i > 0 =
 adjust_down_up i j ptr | j < 1 = ptr
 adjust_down_up i j (p, xs : xss) =
   let (p', xss') = adjust_down_up (i - 1) (j - 1) (p, xss)
-      xs' = incr xs
+      xs' = up xs
   in (p' + head xs', xs' : xss')
 
 adjust_up_down :: Int -> Int -> HPtr -> HPtr
@@ -41,7 +41,7 @@ adjust_up_down i j (p, xs : xss) | i > 0 =
 adjust_up_down i j ptr | j < 1 = ptr
 adjust_up_down i j (p, xs : xss) =
   let (p', xss') = adjust_up_down (i - 1) (j - 1) (p, xss)
-      xs' = decr xs
+      xs' = down xs
   in (p' - head xs, xs' : xss')
 
 
@@ -91,7 +91,7 @@ adjust_down_up' _ _ (p, []) = (p, [])
 adjust_down_up' i j ptr | j < 1 = ptr
 adjust_down_up' i j (p, xs : xss) =
   let (p', xss') = adjust_down_up' (i - 1) (j - 1) (p, xss)
-      xs' = incr xs
+      xs' = up xs
   in (p' + head xs', xs' : xss')
 
 allOfDegree'' :: Int -> Int -> HPtr -> [Int] -> [(Int, [Int])]
@@ -109,15 +109,22 @@ allOfDegree'' d n p es =
 --   6   7   8   9
 -- 10  11  12  13  14
 
+-- diff :: (Show a, Num a) => Int -> H.Homogeneous a -> H.Homogeneous a
+-- diff i (H.H d n hs) =
+--   let delta = [if j == i then 1 else 0 | j <- [0 .. n - 1]]
+--       ptrs = allOfDegree'' (d - 1) n (adjust_up_by delta $ zero n) []
+--       size = hdim n (d - 1)
+--   in H.H (d - 1) n $ listArray (0, size - 1) $
+--     let x = [fromIntegral (1 + (es !! i)) * (hs ! j) | (j, es) <- ptrs]
+--     in trace (show ("size", size, "hs", hs, "ptrs", ptrs, "x", x)) x
+
 diff :: (Show a, Num a) => Int -> H.Homogeneous a -> H.Homogeneous a
 diff i (H.H d n hs) =
   let delta = [if j == i then 1 else 0 | j <- [0 .. n - 1]]
       ptrs = allOfDegree'' (d - 1) n (adjust_up_by delta $ zero n) []
       size = hdim n (d - 1)
   in H.H (d - 1) n $ listArray (0, size - 1) $
-    let x = [fromIntegral (1 + (es !! i)) * (hs ! j) | (j, es) <- ptrs]
-    in trace (show ("size", size, "hs", hs, "ptrs", ptrs, "x", x)) x
-
+    [fromIntegral (1 + (es !! i)) * (hs ! j) | (j, es) <- ptrs]
 
 main = do
   let x0 = H.var 0 :: H.Homogeneous Int
@@ -126,10 +133,6 @@ main = do
   let u = x0 * x0 * x1 + 2 * x1 * x1 * x1 + 3 * x2 * x2 * x2 
   print $ u
   let v = diff 0 u
-  print $ let (H.H a b c) = u in ("u", a, b, c)
-  print $ let (H.H a b c) = u in ("u", a, b, c)
-  print $ let (H.H a b c) = v in ("v", a, b, c)
-  print $ let (H.H a b c) = v in ("v", a, b, c)
   print $ v
 
 --   print $ allOfDegree'' 2 3 (adjust_up_by [0, 1, 1] $ zero 3) []
