@@ -12,6 +12,7 @@ module Homogeneous(Homogeneous(..),
                    var,
                    integrate,
                    d,
+                   homogeneousFromList,
                    fromAllCoefficients) where
 
 import Homogeneous.Index
@@ -143,6 +144,7 @@ upgrade n1 (H d n0 c0) =
 
 -- | Construct homogeneous polynomial from a list of pairs
 -- of coefficients and exponents.
+-- Missing coefficients are set to zero.
 homogeneousFromList :: Num a => Int -> Int -> [(a, Exponent)] -> Homogeneous a
 homogeneousFromList n d as =
     H d n $ runST $ do
@@ -150,12 +152,12 @@ homogeneousFromList n d as =
         forM_ as $ \(a, is) -> writeArray arr (addr' n d is) a
         freeze arr
 
--- Build homogeneous polynomial "procedurally"
+-- Build homogeneous polynomial from function of exponent
 makeHomogeneous :: Int -> Int -> (Exponent -> a) -> Homogeneous a
 makeHomogeneous d n f =
     H d n $ A.listArray (0, hdim n d -1) $ map f $ allOfDegree d n
 
--- Build homogeneous polynomial from list with index
+-- Build homogeneous polynomial from function of index and exponent.
 makeIndexHomogeneous :: Int -> Int -> (Int -> Exponent -> a) -> Homogeneous a
 makeIndexHomogeneous d n f =
     H d n $ array' (0, hdim n d -1) [(i, f i is) |
