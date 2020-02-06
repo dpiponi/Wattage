@@ -326,10 +326,21 @@ hderiv i (H d n c) =
                                            let Just js = mjs,
                                            let a = fromIntegral p * (c A.! addr' n d is)]
 
+hderiv' :: (Show a, Num a) => Int -> Homogeneous a -> Homogeneous a
+hderiv' i Zero = Zero
+hderiv' i (H 0 n c) = Zero
+hderiv' i (H d n c) | i >= n = Zero
+hderiv' i (H d n hs) =
+  let delta = [if j == i then 1 else 0 | j <- [0 .. n - 1]]
+      ptrs = allOfDegree'' (d - 1) n (adjust_up_by delta $ zero n) []
+      size = hdim n (d - 1)
+  in H (d - 1) n $ A.listArray (0, size - 1) $
+      [fromIntegral (1 + (es !! i)) * (hs A.! j) | (j, es) <- ptrs]
+
 -- | `d i h` is the derivative of the homogeneous polynomial
 -- `h` with respect to the `i`th variable.
 d :: (Num a, Eq a, Show a) => Int -> Homogeneous a -> Homogeneous a
-d = hderiv
+d = hderiv'
 
 -- scaleDeriv :: (Num a, Eq a, Show a) => Int -> Homogeneous a -> Homogeneous a
 -- scaleDeriv i Zero = Zero

@@ -51,7 +51,7 @@ dubrovin = do
   print $ M.truncate 20 $ exp h
 
   -- Example from page 40 of [2]
-  let g = 100 :: Int
+  let g = 50 :: Int
   let d = 6 :: Int
   let n = 2*g+2*d-2
   -- 36773029021136586120...20640
