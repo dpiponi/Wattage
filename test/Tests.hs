@@ -361,10 +361,23 @@ testHomogeneousIntegration3 =
       x2 = make_var 2 1
   in H.integrate 2 (x0 * x0 * x1 * x1 * x2 * x2) @?= (1 / 3) * x0 * x0 * x1 * x1 * x2 * x2 * x2
 
+
 -- Multivariate tests
 testMultivariate = testGroup "Multivariate tests" 
     [ testCase "Multivariate coefficients" testMultivariateCoefficients,
+      testCase "Multivariate differentiation" testMultivariateDifferentiation,
       testCase "Hurwitz numbers" testHurwitzNumbers]
+
+testMultivariateDifferentiation = do
+  let x0 = M.var 0 :: M.Multivariate Q
+  let x1 = M.var 1 :: M.Multivariate Q
+  let u = exp (x0 + x1)
+  M.truncate 10 (M.d 0 u) @?= M.truncate 10 u
+  M.truncate 10 (M.d 1 u) @?= M.truncate 10 u
+  M.truncate 10 (M.d 2 u) @?= 0
+  let v = exp (x0 + 2 * x1)
+  M.truncate 10 (M.d 0 v) @?= M.truncate 10 v
+  M.truncate 10 (M.d 1 v) @?= M.truncate 10 (2 * v)
 
 testMultivariateCoefficients = do
     let x0 = M.var 0

@@ -16,7 +16,7 @@ import Homogeneous(Homogeneous(..))
 import Data.Array as A
 
 newtype Multivariate a = M { unM :: F.Formal (Homogeneous a) }
-  deriving (Num, Fractional, Floating)
+  deriving (Num, Fractional, Floating, Eq)
 
 var :: (Show a, Num a) => Int -> Multivariate a
 var i = M (F [Zero, H.make_var i (i + 1)])
@@ -28,7 +28,7 @@ integrate :: (Num a, Eq a, Show a, Fractional a) => Int -> Multivariate a -> Mul
 integrate i (M xs) = M $ 0 `F.prepend` fmap (H.hint i) xs
 
 d :: (Num a, Eq a, Show a, Fractional a) => Int -> Multivariate a -> Multivariate a
-d i (M xs) = M $ 0 `F.prepend` fmap (H.hint i) xs
+d i (M xs) = M $ F.ftail $ fmap (H.d i) xs
 
 -- mprepend :: Homogeneous a -> Multivariate a -> Multivariate a
 -- mprepend x (M ys) = M (x `prepend` ys)
