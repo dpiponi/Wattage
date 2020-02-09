@@ -332,7 +332,7 @@ hderiv' i (H 0 n c) = Zero
 hderiv' i (H d n c) | i >= n = Zero
 hderiv' i (H d n hs) =
   let delta = [if j == i then 1 else 0 | j <- [0 .. n - 1]]
-      ptrs = allOfDegree'' (d - 1) n (adjust_up_by delta $ zero n) []
+      ptrs = allOfDegree'' (d - 1) n (adjust_up_by delta $ zero n)
       size = hdim n (d - 1)
   in H (d - 1) n $ A.listArray (0, size - 1) $
       [fromIntegral (1 + (es !! i)) * (hs A.! j) | (j, es) <- ptrs]

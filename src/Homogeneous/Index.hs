@@ -171,5 +171,11 @@ allOfDegree''' d n p es =
             loop (i - 1) d n (adjust_down_up1 p) es
   in loop d d n p es
 
-allOfDegree'' :: Int -> Int -> HPtr -> [Int] -> [(Int, [Int])]
-allOfDegree'' d n p es = allOfDegree''' d n p es []
+allOfDegree'' :: Int -> Int -> HPtr -> [(Int, [Int])]
+allOfDegree'' d n p = allOfDegree''' d n p [] []
+
+--         0
+--       1   2
+--     3   4   5
+--   6   7   8   9
+-- 10  11  12  13  14
