@@ -72,18 +72,26 @@ showVar i k = "x" ++ show i ++ "^" ++ show k
 
 showTerm :: (Show a, Num a, Eq a) => a -> Exponent -> String
 showTerm a js | all (==0) js = show a
+showTerm 1 js = L.intercalate " * " [showVar i j |
+                                          (i, j) <- enumerate js, j /= 0]
+showTerm (-1) js = "- " ++ L.intercalate " * " [showVar i j |
+                                          (i, j) <- enumerate js, j /= 0]
+showTerm c0 js | signum c0 == -1 = ("- "  ++) $ showsPrec 8 (- c0) $ " * " ++ L.intercalate " * " [showVar i j |
+                                          (i, j) <- enumerate js, j /= 0]
 showTerm c0 js = showsPrec 8 c0 $ " * " ++ L.intercalate " * " [showVar i j |
                                               (i, j) <- enumerate js, j /= 0]
 
 showTerms :: (Show a, Num a, Eq a) => F.Position -> [(a, Exponent)] -> String
-showTerms F.Initial ([] :: [(a, Exponent)]) = show (0 :: a)
+showTerms F.Initial [] = "0"
+showTerms F.Initial ((c, js) : xs) | signum c == -1 = showTerm c js ++ showTerms F.NonInitial xs
 showTerms F.Initial ((c, js) : xs) = showTerm c js ++ showTerms F.NonInitial xs
 showTerms F.NonInitial [] = ""
+showTerms F.NonInitial ((x, js) : xs) | signum x == -1 = " - " ++ showTerm (-x) js ++ showTerms F.NonInitial xs
 showTerms F.NonInitial ((x, js) : xs) = " + " ++ showTerm x js ++ showTerms F.NonInitial xs
 
 -- This is a mess and needs to be simplified. XXX
 instance (Show a, Num a, Eq a) => Show (Homogeneous a) where
-  showsPrec p Zero = showsPrec p (0 :: a)
+  showsPrec p Zero = showString "0"
 --   showPrec p x h | countTerms h == 1 = 
   showsPrec p h =
     let terms = nonZeroTerms h

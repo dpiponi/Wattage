@@ -99,15 +99,17 @@ testHomogeneousOut = do
   let x0 = H.var 0 :: Homogeneous Q
   let x1 = H.var 1 :: Homogeneous Q
   let x2 = H.var 2 :: Homogeneous Q
-  show Zero @?= "0"
-  show x0 @?= "x0"
-  show (x0 + x1) @?= "x0 + x1"
-  show (x0 - x1) @?= "x0 - x1"
-  show (- x0) @?= "- x0"
-  show (-2 * x0) @?= "- (2 % 1) * x0"
-  show (x0 :+ x0) @?= "x0 :+ x0"
-  show (x0 :* x1) @?= "x0 :* x1"
-  show ((x0 + x1) :* (x0 + x1)) @?= "(x0 + x1) :* (x0 + x1)"
+  show (Zero :: Homogeneous a) @?= "0"
+  show (Zero :: Homogeneous Rational) @?= "0 % 1"
+  show (x0 - x0 :: Homogeneous Rational) @?= "0 % 1"
+  show x0 @?= "(1 % 1) * x0"
+  show (x0 + x1) @?= "(1 % 1) * x0 + (1 % 1) * x1"
+  show (x0 - x1) @?= "(1 % 1) * x0 + ((-1) % 1) * x1"
+  show (- x0) @?= "((-1) % 1) * x0"
+  show (-2 * x0) @?= "((-2) % 1) * x0"
+  show (x0 :+ x0) @?= "(1 % 1) * x0 :+ (1 % 1) * x0"
+  show (x0 :* x1) @?= "(1 % 1) * x0 :* (1 % 1) * x1"
+  show ((x0 + x1) :* (x0 + x1)) @?= "((1 % 1) * x0 + (1 % 1) * x1) :* ((1 % 1) * x0 + (1 % 1) * x1)"
 
 -- Basic functionality
 testBasic = testGroup "Tests of basic functionality"
