@@ -1,7 +1,5 @@
 import Data.Array
 import Control.Monad
-import Homogeneous.Index hiding (up,down)
-import qualified Homogeneous as H
 import Debug.Trace
 
 down :: [Int] -> [Int]
@@ -64,78 +62,46 @@ adjust_down_by ns xs =
       adjust_by' i (n : ns) xs = adjust_by' i (n - 1 : ns) $ adjust_up_down 0 i xs
   in adjust_by' 1 (tail ns) xs
 
-{-
-allOfDegree' :: Int -> Int -> [Int] -> IO ()
-allOfDegree' d 1 es = print $ (es ++ [d])
-allOfDegree' d n es = do
-  let loop i | i < 0 = return ()
-      loop i = do
-        allOfDegree' (d - i) (n-1) (es ++ [i])
-        loop (i - 1)
-  loop d
--}
-
-allOfDegree' :: Int -> Int -> HPtr -> [Int] -> IO ()
-allOfDegree' d 1 p es = print $ (p, es ++ [d])
-allOfDegree' d n p es = do
-  let loop i d n p es | i < 0 = return ()
-      loop i d n p es = do
-        allOfDegree' (d - i) (n-1) (ptail p) (es ++ [i])
-        let p' = adjust_down_up 0 1 p
-        loop (i - 1) d n p' es
-  loop d d n p es
-
 -- Assumes i <= 0
-adjust_down_up' :: Int -> Int -> HPtr -> HPtr
-adjust_down_up' _ _ (p, []) = (p, [])
-adjust_down_up' i j ptr | j < 1 = ptr
-adjust_down_up' i j (p, xs : xss) =
-  let (p', xss') = adjust_down_up' (i - 1) (j - 1) (p, xss)
-      xs' = up xs
-  in (p' + head xs', xs' : xss')
+-- adjust_down_up0 ::  HPtr -> HPtr
+-- adjust_down_up0 (p, []) = (p, [])
+-- adjust_down_up0 ptr = ptr
 
-allOfDegree'' :: Int -> Int -> HPtr -> [Int] -> [(Int, [Int])]
-allOfDegree'' d 1 p es = [(fst p, es ++ [d])]
-allOfDegree'' d n p es = 
-  let loop i d n p es | i < 0 = []
+adjust_down_up1 ::  HPtr -> HPtr
+adjust_down_up1 (p, []) = (p, [])
+adjust_down_up1 (p, xs : xss) =
+  let xs' = up xs
+  in (p + head xs', xs' : xss)
+
+allOfDegree''' :: Int -> Int -> HPtr -> [Int] -> [(Int, [Int])] -> [(Int, [Int])]
+allOfDegree''' d 1 p es = ((fst p, es ++ [d]) :)
+allOfDegree''' d n p es = 
+  let loop i d n p es | i < 0 = id
       loop i d n p es = 
-        allOfDegree'' (d - i) (n-1) (ptail p) (es ++ [i]) ++
-            loop (i - 1) d n (adjust_down_up' 0 1 p) es
+        allOfDegree''' (d - i) (n - 1) (ptail p) (es ++ [i]) .
+            loop (i - 1) d n (adjust_down_up1 p) es
   in loop d d n p es
 
---         0
---       1   2
---     3   4   5
---   6   7   8   9
--- 10  11  12  13  14
+allOfDegree'' :: Int -> Int -> HPtr -> [(Int, [Int])]
+allOfDegree'' d n p = allOfDegree''' d n p [] []
 
--- diff :: (Show a, Num a) => Int -> H.Homogeneous a -> H.Homogeneous a
--- diff i (H.H d n hs) =
---   let delta = [if j == i then 1 else 0 | j <- [0 .. n - 1]]
---       ptrs = allOfDegree'' (d - 1) n (adjust_up_by delta $ zero n) []
---       size = hdim n (d - 1)
---   in H.H (d - 1) n $ listArray (0, size - 1) $
---     let x = [fromIntegral (1 + (es !! i)) * (hs ! j) | (j, es) <- ptrs]
---     in trace (show ("size", size, "hs", hs, "ptrs", ptrs, "x", x)) x
+generator''' :: Int -> Int -> HPtr -> [Int] -> [(Int, [Int])] -> [(Int, [Int])]
+generator''' d 1 p es = ((fst p, es ++ [d]) :)
+generator''' d n p es = 
+  let loop i d n p es | i < 0 = id
+      loop i d n p es = 
+        generator''' (d - i) (n - 1) (ptail p) (es ++ [i]) .
+            loop (i - 1) d n (adjust_down_up1 p) es
+      loop i d n p es = 
+        generator''' (d - i) (n - 1) (ptail p) (es ++ [i]) .
+            loop (i - 1) d n (adjust_down_up1 p) es
+  in loop d d n p es
 
-diff :: (Show a, Num a) => Int -> H.Homogeneous a -> H.Homogeneous a
-diff i (H.H d n hs) =
-  let delta = [if j == i then 1 else 0 | j <- [0 .. n - 1]]
-      ptrs = allOfDegree'' (d - 1) n (adjust_up_by delta $ zero n) []
-      size = hdim n (d - 1)
-  in H.H (d - 1) n $ listArray (0, size - 1) $
-    [fromIntegral (1 + (es !! i)) * (hs ! j) | (j, es) <- ptrs]
+generator'' :: Int -> Int -> HPtr -> [(Int, [Int])]
+generator'' d n p = generator''' d n p [] []
 
 main = do
-  let x0 = H.var 0 :: H.Homogeneous Int
-  let x1 = H.var 1 :: H.Homogeneous Int
-  let x2 = H.var 2 :: H.Homogeneous Int
-  let u = x0 * x0 * x1 + 2 * x1 * x1 * x1 + 3 * x2 * x2 * x2 
-  print $ u
-  let v = diff 0 u
-  print $ v
-
---   print $ allOfDegree'' 2 3 (adjust_up_by [0, 1, 1] $ zero 3) []
+  print $ allOfDegree'' 2 3 (adjust_up_by [0, 1, 1] $ zero 3) [] []
 
   -- allOfDegree' 2 3 (adjust_up_by [0, 1, 1] $ zero 3) []
 
