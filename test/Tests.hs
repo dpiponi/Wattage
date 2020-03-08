@@ -26,7 +26,8 @@ tests = testGroup "Tests"
       testMultivariate,
       testItlog,
       testOutput,
-      testFormalProperties ]
+      testFormalProperties,
+      testVarious ]
 
 testFormalProperties = testGroup "Formal properties" 
     [ testAddCommutes,
@@ -442,3 +443,10 @@ testFractionalItPower =
     let f = sin (tan z)
         g = itexp (itlog f / 5)
     in F.truncate 5 f @?= F.truncate 5 (g `fcompose` g `fcompose` g `fcompose` g `fcompose` g)
+
+testVarious = testGroup "Various"
+  [ testCase "infinite sum" testInfiniteSum]
+
+testInfiniteSum = do
+  let x = F.var :: Formal Rational
+  F.truncate 20 (infiniteSum [x^i | i <- [0..]]) @?= F.truncate 20 (1 / (1 - x))

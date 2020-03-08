@@ -5,6 +5,7 @@ module Formal(Q,
               var,
               coefficient,
               truncate,
+              infiniteSum,
               integrate,
               (...),
               inverse,
@@ -13,6 +14,7 @@ module Formal(Q,
               itlog,
               itexp,
               z,
+              revert,
               hypergeometric,
               f21,
               mapf,
@@ -99,7 +101,10 @@ inverse' (0:f:fs) = u where   u = 0 : x
                               g = map negate ((x `convolve` x) `convolve` compose fs u)
 
 inverse' _ = error "inverse applicable only to non-empty lists starting with 0"
+inverse :: (Fractional a, Eq a) => Formal a -> Formal a
 inverse (F xs) = F $ inverse' xs
+revert :: (Fractional a, Eq a) => Formal a -> Formal a
+revert = inverse
 
 -- reciprocal
 -- untested
@@ -435,4 +440,13 @@ coefficient _ (F []) = 0
 coefficient 0 (F (x : _)) = x
 coefficient i (F (x : xs)) = coefficient (i - 1) (F xs)
 
+ftail' :: Formal a -> Formal a
+ftail' (F []) = F []
+ftail' (F (_ : xs)) = F xs
 
+-- | `infiniteSum [z0, z1, ...]` is the sum of the `zi` on the
+-- assumption that `z1` has one leading term of order at least one,
+-- `z2` has leading term of order at least two and so on.
+infiniteSum :: (Eq a, Num a) => [Formal a] -> Formal a
+infiniteSum [] = 0
+infiniteSum (F (z0 : zs) : zss) = F $ z0 : unF (F zs + infiniteSum (map ftail' zss))
