@@ -6,6 +6,7 @@ module Formal(Q,
               coefficient,
               truncate,
               infiniteSum,
+              infiniteProduct,
               integrate,
               (...),
               inverse,
@@ -22,7 +23,9 @@ module Formal(Q,
               theta3,
               theta4,
               lconvolve,
+              convolve, -- ??
               fibs,
+              lead, -- ??
               tribs,
               trunc,
               prepend,
@@ -235,7 +238,7 @@ t' :: Formal Rational
 t' = t
 
 lead [] x = x
-lead (a:as) x = a : lead as (tail x)
+lead (a : as) x = a : lead as (tail x)
 a ... F x = F $ lead a x
 
 one = t'
@@ -450,3 +453,9 @@ ftail' (F (_ : xs)) = F xs
 infiniteSum :: (Eq a, Num a) => [Formal a] -> Formal a
 infiniteSum [] = 0
 infiniteSum (F (z0 : zs) : zss) = F $ z0 : unF (F zs + infiniteSum (map ftail' zss))
+
+-- Assumes product is of form
+-- [1+x*..., 1+x^2*..., 1+x^3*..., ...]
+infiniteProduct :: (Eq a, Num a) => [Formal a] -> Formal a
+infiniteProduct zs = infiniteProduct' 0 zs where
+  infiniteProduct' i (f : fs) = ([1] ++ replicate i 0) ... (f * infiniteProduct' (i + 1) fs)

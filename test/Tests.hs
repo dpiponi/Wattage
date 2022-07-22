@@ -22,6 +22,7 @@ tests = testGroup "Tests"
       testTranscendental,
       testAnnihilators,
       testHypergeometric,
+      testPartition,
       testHomogeneous,
       testMultivariate,
       testItlog,
@@ -280,6 +281,32 @@ testClausenFormula =
      u = hypergeometric [2*c-2*s-1,2*s,c-1/2] [2*c-1,c] z - (f21 (c-s-1/2) s c z)^2 :: Formal Q
  in F.truncate 20 u @?= 0
 
+testPartition = testGroup "partition number tests"
+    [ testCase "Euler pentagonal number theorem" testEulerPentagonal,
+      testCase "triangular number theorem" testTriangular,
+      testCase "Gauss identity" testGauss]
+
+minus1p k = 1 - 2 * (k `mod` 2)
+pentagonal k = k * (3 * k - 1) `div` 2
+testEulerPentagonal =
+  let lhs = infiniteProduct [1 - z^n | n <- [1 ..]] :: Formal Q
+      rhs = sum [fromIntegral (minus1p k) * z^pentagonal k |
+                 k <- [-20 .. 20]]
+  in F.truncate 100 lhs @?= F.truncate 100 rhs
+
+triangular k = k * (k + 1) `div` 2
+testTriangular =
+  let lhs = infiniteProduct [1 - z^n | n <- [1 ..], n `mod` 4 /= 2]
+      rhs = sum [fromIntegral (minus1p (triangular k)) * z^triangular k |
+                 k <- [-20, -18 .. 20]]
+  in F.truncate 100 lhs @?= F.truncate 100 rhs
+
+testGauss =
+  let lhs = infiniteProduct [(1 - z^n) / (1 + z^n) | n <- [1 ..]]
+      rhs = sum [fromIntegral (minus1p k) * z^(k * k) |
+                 k <- [-20 .. 20]]
+  in F.truncate 100 lhs @?= F.truncate 100 rhs
+
 -- Homogeneous polynomial tests
 testHomogeneous = testGroup "Homogeneous polynomial tests"
     [testCase "Match zero" testMatchZero,
@@ -445,8 +472,15 @@ testFractionalItPower =
     in F.truncate 5 f @?= F.truncate 5 (g `fcompose` g `fcompose` g `fcompose` g `fcompose` g)
 
 testVarious = testGroup "Various"
-  [ testCase "infinite sum" testInfiniteSum]
+  [ testCase "infinite sum" testInfiniteSum,
+    testCase "prime sieve" testPrimeSieve]
 
 testInfiniteSum = do
   let x = F.var :: Formal Rational
   F.truncate 20 (infiniteSum [x^i | i <- [0..]]) @?= F.truncate 20 (1 / (1 - x))
+
+testPrimeSieve = do
+  -- See http://oeis.org/A000005
+  let x = infiniteSum [F.var^i / (1 - F.var^i)| i <-[1 ..]]
+  take 20 (map fst $ filter  (\(x, y) -> y == 2) $ zip [0 ..] (unF x)) @?=
+                    [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71]
