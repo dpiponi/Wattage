@@ -7,6 +7,8 @@ module Formal(Q,
               truncate,
               infiniteSum,
               infiniteProduct,
+              qPochhammer,
+              infiniteQPochhammer,
               integrate,
               (...),
               inverse,
@@ -456,6 +458,11 @@ infiniteSum (F (z0 : zs) : zss) = F $ z0 : unF (F zs + infiniteSum (map ftail' z
 
 -- Assumes product is of form
 -- [1+x*..., 1+x^2*..., 1+x^3*..., ...]
+-- This is very slow. Needs to use more sharing.
 infiniteProduct :: (Eq a, Num a) => [Formal a] -> Formal a
 infiniteProduct zs = infiniteProduct' 0 zs where
   infiniteProduct' i (f : fs) = ([1] ++ replicate i 0) ... (f * infiniteProduct' (i + 1) fs)
+
+qPochhammer a q n = product $ take n $ map (1 -) $ iterate (q *) a
+
+infiniteQPochhammer a q = infiniteProduct $ map (1 -) $ iterate (q *) a
