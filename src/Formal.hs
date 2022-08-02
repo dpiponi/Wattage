@@ -135,6 +135,9 @@ z = F [0, 1]
 var :: Num a => Formal a
 var = F [0, 1]
 
+shiftRight n (F xs) = F (replicate n 0 ++ xs)
+shiftLeft n (F xs) = F (drop n xs)
+
 eval :: Num b => [b] -> b -> b
 eval [] x = 0
 eval (a:as) x = a+x*eval as x
@@ -461,7 +464,9 @@ infiniteSum (F (z0 : zs) : zss) = F $ z0 : unF (F zs + infiniteSum (map ftail' z
 -- This is very slow. Needs to use more sharing.
 infiniteProduct :: (Eq a, Num a) => [Formal a] -> Formal a
 infiniteProduct zs = infiniteProduct' 0 zs where
-  infiniteProduct' i (f : fs) = ([1] ++ replicate i 0) ... (f * infiniteProduct' (i + 1) fs)
+  infiniteProduct' i (f : fs) =
+    let u = infiniteProduct' (i + 1) fs
+    in ([1] ++ replicate i 0) ... (if i == 0 then f * u else (u + shiftRight i (shiftLeft i f * u)))
 
 qPochhammer a q n = product $ take n $ map (1 -) $ iterate (q *) a
 

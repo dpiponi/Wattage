@@ -13,5 +13,5 @@ rhs = zipWith (/) [x ^ k | k <- scanl1 (+) [1 ..]]
 
 main = do
 --   mapM_ print $ take 10 $ map (F.truncate 10) rhs
-  print $ F.truncate 100 lhs
-  print $ F.truncate 100 $ 1 + infiniteSum rhs
+  print $ F.truncate 200 lhs
+  print $ F.truncate 200 $ 1 + infiniteSum rhs
