@@ -1,22 +1,33 @@
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Formal(Q,
               Formal(..),
               var,
+              ode,
               coefficient,
               truncate,
               infiniteSum,
+              infiniteSum',
               infiniteProduct,
               qPochhammer,
               infiniteQPochhammer,
               integrate,
               (...),
+              (+*),
               inverse,
               fcompose,
+              scaleF,
               ftail,
               itlog,
               itexp,
+              factorial,
               z,
+              shift,
+              shiftRight,
               revert,
               hypergeometric,
               f21,
@@ -31,6 +42,7 @@ module Formal(Q,
               tribs,
               trunc,
               prepend,
+--               tree,
               Position(..)) where
 
 import Poly
@@ -39,6 +51,7 @@ import Data.Ratio
 import Data.List hiding (union)
 import Debug.Trace
 import Prelude hiding (truncate)
+import qualified VectorSpace as VS
 
 (.*.) :: Num a => [a] -> [a] -> [a]
 (.*.) = zipWith (*)
@@ -85,7 +98,7 @@ sample a = map (`count` a) [0..16]
 [] `convolve` _ = []
 _ `convolve` [] = []
 (a : as) `convolve` bbs@(b : bs) = (a *! b) :
-    (map (a !*) bs) ^+ (as `convolve` bbs)
+    ((map (a !*) bs) ^+ (as `convolve` bbs))
 
 aas@(a : as) `lconvolve` ~(b : bs) = (a !* b) :
     (map (*! b) as) ^+ (aas `lconvolve` bs)
@@ -99,6 +112,8 @@ compose (f : fs) g@(0 : gs) = f : (gs `convolve` compose fs g)
 compose _ _ = error "compose requires two non-empty lists, the second starting with 0"
 
 fcompose (F a) (F b) = F $ compose a b
+
+scaleF x (F ys) = F $ map (x *) ys
 
 -- Lagrangian reversion
 inverse' (0:f:fs) = u where   u = 0 : x
@@ -138,21 +153,27 @@ var = F [0, 1]
 shiftRight n (F xs) = F (replicate n 0 ++ xs)
 shiftLeft n (F xs) = F (drop n xs)
 
+shift (F xs) = F (0 : xs)
+
 eval :: Num b => [b] -> b -> b
 eval [] x = 0
 eval (a:as) x = a+x*eval as x
 
 d (F []) = 0
-d (F (_:x)) = F $ zipWith (*) (map fromInteger [1..]) x
+d (F (_:x)) = F $ zipWith (VS.*) (map fromInteger [1..]) x
 
 dlist (_:x) = zipWith (*) (map fromInteger [1..]) x
 dlist _ = error "You can only differentiate non-empty lists"
 
-integrate (F x) = F $ 0 : zipWith (/) x (map fromInteger [1..])
+integrate :: (VS.VectorSpace f a, Fractional f, Num a) => Formal a -> Formal a
+integrate (F x) = F $ 0 : zipWith (VS.*) [1 / fromInteger n | n <- [1..]] x
 
 square x = x `convolve` x
 
 newtype Formal a = F { unF :: [a] }
+
+(+*) :: a -> Formal a -> Formal a
+(+*) x (F ys) = F (x : ys)
 
 data Position = Initial | NonInitial
 
@@ -187,6 +208,9 @@ instance (Num a, Eq a) => Eq (Formal a) where
     F [] == F x = all (== 0) x
     F (x : xs) == F (y : ys) = x == y && F xs == F ys
 
+-- instance Functor Formal where
+--   fmap f (F xs) = F (fmap f xs)
+
 mapf :: (a -> b) -> Formal a -> Formal b
 mapf f (F xs) = F $ map f xs
 
@@ -206,13 +230,19 @@ instance (Show r, Eq r, Fractional r) => Fractional (Formal r) where
     F x/F y = F $ x ^/ y
     fromRational x    = F [fromRational x]
 
-sqrt' x = 1:rs where rs = map (/ 2) (xs ^- (0 : (rs `convolve` rs)))
+sqrt' x = 1:rs where rs = map ((1/2) VS.*) (xs ^- (0 : (rs `convolve` rs)))
                      _:xs = x
+
+instance (Eq a, Num a, VS.VectorSpace f a) => VS.VectorSpace f (Formal a) where
+  zero = 0
+  (+) = (+)
+  f * F xs = F $ map (f VS.*) xs
+  negate = negate
 
 -- Test performance. XXX
 -- It may be that the naive approach of summing powers may work
 -- better than some of these differential equation tricks.
-instance (Show r, Eq r, Fractional r) => Floating (Formal r) where
+instance (Fractional r, Show r, Eq r, Num r, Fractional f, VS.VectorSpace f r) => Floating (Formal r) where
     sqrt (F (1:x)) = F $ sqrt' (1:x)
     sqrt _      = error "Can only find sqrt when leading term is 1"
     exp x      = e where e = 1+integrate (e * d x) -- XXX throws away leading term
@@ -246,14 +276,14 @@ lead [] x = x
 lead (a : as) x = a : lead as (tail x)
 a ... F x = F $ lead a x
 
-one = t'
-list x     = 1/(1-x)
-set     = exp
-ring x     = -log(1-x)
-pair x     = x*x
-oneOf a b   = a+b
-necklace x  = -log(1-x)/2+x/2+x*x/4
-union a b   = a*b
+-- one = t'
+-- list x     = 1/(1-x)
+-- set     = exp
+-- ring x     = -log(1-x)
+-- pair x     = x*x
+-- oneOf a b   = a+b
+-- necklace x  = -log(1-x)/2+x/2+x*x/4
+-- union a b   = a*b
 
 -- Filter
 (//) :: Fractional a => [a] -> (Integer -> Bool) -> [a]
@@ -263,7 +293,7 @@ nonEmpty a = a // (/= 0)
 
 count n a = (a!!fromInteger n) * factorial (fromInteger n)
 
-tree x = p where p = [0] ... union (set p) x
+-- tree x = p where p = [0] ... union (set p) x
 
 graph = F [2^(n*(n-1) `div` 2) / product (map fromInteger [1..n]) | n <- [0..]] :: Formal Rational
 
@@ -279,6 +309,10 @@ delta _ _ = error "First argument to delta must be non-empty"
 --     in g
 
 p f t = (t `compose` f) ^- t
+
+-- |Solve ODE g'(x) = f(g(x)) with g(0) = a
+ode :: (Eq a, Fractional a, VS.VectorSpace f a, Fractional f) => a -> (Formal a -> Formal a) -> Formal a
+ode a f = e where e = [a] ... integrate (f e)
 
 -- |The 'itlog' function computes the iterative logarithm of
 --  its argument.
@@ -458,6 +492,10 @@ ftail' (F (_ : xs)) = F xs
 infiniteSum :: (Eq a, Num a) => [Formal a] -> Formal a
 infiniteSum [] = 0
 infiniteSum (F (z0 : zs) : zss) = F $ z0 : unF (F zs + infiniteSum (map ftail' zss))
+
+infiniteSum' :: (Eq a, Num a) => Integer -> (Integer -> Formal a) -> Formal a
+infiniteSum' n f = let F (z0 : zs) = f n
+                    in F $ z0 : unF (F zs + infiniteSum' (n + 1) (ftail' . f))
 
 -- Assumes product is of form
 -- [1+x*..., 1+x^2*..., 1+x^3*..., ...]

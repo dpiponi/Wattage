@@ -1,4 +1,6 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Multivariate(var,
                     coefficient,
@@ -14,9 +16,13 @@ import Formal(Q, Formal(..))
 import qualified Homogeneous as H
 import Homogeneous(Homogeneous(..))
 import Data.Array as A
+import qualified VectorSpace as VS
 
 newtype Multivariate a = M { unM :: F.Formal (Homogeneous a) }
-  deriving (Num, Fractional, Floating, Eq)
+  deriving (Num, Fractional, Eq)
+
+instance (Show a, Eq a, Fractional a, VS.VectorSpace f a, Fractional f) => Floating (Multivariate a) where
+  exp (M x) = M $ exp x
 
 var :: (Show a, Num a) => Int -> Multivariate a
 var i = M (F [Zero, H.make_var i (i + 1)])

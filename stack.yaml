@@ -17,7 +17,7 @@
 #
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
-resolver: lts-14.0
+resolver: lts-21.0
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -40,7 +40,7 @@ packages:
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a
 #
 extra-deps:
-- memoize-0.8.1@sha256:2146197c639c126796d850cb4457b24cfeb6966d6d878825f855aafce31f8874,1601
+- memoize-1.0.0@sha256:a74838307680c23eb563d891da3293d04b2661235a91448464864720ecda38da,1882
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

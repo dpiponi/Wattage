@@ -1,6 +1,9 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Homogeneous(Homogeneous(..),
                    Exponent,
@@ -27,6 +30,7 @@ import Data.Ratio
 import Data.Maybe
 import Debug.Trace
 import qualified Formal as F
+import qualified VectorSpace as VS
 
 trimmed :: (Eq a, Num a) => [a] -> [a]
 trimmed [] = []
@@ -273,6 +277,15 @@ instance (Eq a, Num a, Show a) => Eq (Homogeneous a) where
         H d1' n1' c1' = if n1 < n then upgrade n h1 else h1
     in c0' == c1'
   _ == _ = False
+
+vhscale :: (Eq a, Num a, VS.VectorSpace f a) => f -> Homogeneous a -> Homogeneous a
+vhscale _ Zero = Zero
+vhscale a (H d0 n0 c0) = H d0 n0 $ fmap (a VS.*) c0
+
+instance (Eq a, VS.VectorSpace f a, Show a, Num a) => VS.VectorSpace f (Homogeneous a) where
+  zero = Zero
+  (+) = (+)
+  (*) = vhscale
 
 instance (Eq a, Show a, Num a) => Num (Homogeneous a) where
   h0 + Zero = h0
